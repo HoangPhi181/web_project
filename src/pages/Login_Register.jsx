@@ -1,9 +1,9 @@
 import React from 'react'
-import "../styles/Login-Register.css";
+import "../styles/Login_Register.css";
 
 export default function Login_Register() {
   return (
-    <div class="parent-container">
+    <div class="container">
         <div class="login-container"> 
             <article class ="login-form">
                 <header>
