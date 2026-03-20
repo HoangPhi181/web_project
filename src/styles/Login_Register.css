@@ -1,11 +1,7 @@
 
-body{
-    background-color: #191919;
-    color:#fff;
-}
-
-.container{
+.login-register-container{
     width: 950px;
+    max-width: 100%;
     height: 550px;
     margin: 120px auto;
     position: relative;
@@ -15,7 +11,7 @@ body{
     position: absolute;
     width:100%;
     height:100%;
-
+    /* visibility: hidden; */
 
     display: flex;
     background:black;
@@ -125,36 +121,6 @@ body{
     margin-left: auto;
 }
 
-@media (max-width: 768px){
-
-    .container{
-        flex-direction: column;
-        height: auto;
-    }
-
-    .welcome-message-login{
-        width: 100%;
-        clip-path: none;
-        text-align: center;
-    }
-
-    .login-form-login{
-        width: 100%;
-        padding: 40px;
-    }
-
-    .login-form input,
-    .login-form button{
-        width: 100%;
-    }
-
-    .welcome-message-login h1,
-    .welcome-message-login p{
-        width: 100%;
-    }
-
-}
-
 /*----------------------------------------------------------------------------*/
 
 .register-container {
@@ -221,7 +187,11 @@ body{
 
 .register-form input:focus,
 .register-form select:focus {
-    border-bottom: 2px solid #00d2ff;
+    border-bottom: 2px solid #e46033;
+}
+
+.register-form .country{
+    background-color: black;
 }
 
 .register-form button {
@@ -259,29 +229,53 @@ body{
 }
 
 @media (max-width: 768px) {
-    .container {
-        flex-direction: column; 
+    .login-register-container{
         height: auto;
     }
-    .welcome-message{
-        width: 100%;
+
+    .login-container{
+        flex-direction: column;
+        position: relative;
+    }
+
+    .login-form{
+        width: 88%;
+        padding: 30px;
+    }
+
+    .welcome-message-login{
+        width: 95%;
         clip-path: none;
         text-align: center;
+        padding: 40px 20px;
+    }
+
+    .welcome-message-login h1,
+    .welcome-message-login p{
+        width: 100%;
+        margin-left: 0;
+    }
+
+
+    .register-container{
+        flex-direction: column;
+        position: relative;
+    }
+
+    .welcome-message-register,
+    .register-form{
+        width: 93.5%;
+        clip-path: none;
+    }
+
+    .welcome-message-register{
+        padding: 40px 20px;
+        text-align: center;
+
     }
 
     .register-form{
-        width: 100%;
-        padding: 40px;
-    }
-
-    .register-form input,
-    .register-form button{
-        width: 100%;
-    }
-
-    .welcome-message h1,
-    .welcome-message p{
-        width: 100%;
+        padding: 20px;
     }
 }
 

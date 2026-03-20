@@ -3,7 +3,7 @@ import "../styles/Background.css";
 
 export default function Background() {
   return (
-    <div class="container">
+    <div class="background-container">
          <div class="BackGround_container">
             <header>
                 <h1>Nova</h1>
@@ -14,7 +14,7 @@ export default function Background() {
                 <div class="BackGround_Animation">NOVA</div>
                 <p class ="p1">Giao dịch với nhà môi giới bán lẻ lớn nhất thế giới và hưởng lợi từ các điều kiện tốt hơn thị trường.</p>
                 <div class="btnGroup">
-                    <a href = "LogIn_SignUp.html"><button class ="btnDK"> Đăng ký</button></a>
+                    <button class ="btnDK"> Đăng ký</button>
                     <button class = "btnDEMO"> tài khoản Demo miễn phí</button>
                 </div>
                 <div class="textGroup_features">

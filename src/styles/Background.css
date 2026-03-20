@@ -1,4 +1,8 @@
-/* ------------------- LOGO / TITLE -------------------------------- */
+.background-container{
+    background-color: white;
+    color: black;
+}
+/* -------------------logo/title-------------------------------- */
 header h1{
     font-size: 41px;
     margin-top: 20px;   
@@ -21,7 +25,7 @@ main h3 {
     font-size: 350%;
     line-height: 1.2;
 }
-/*------------------- ANIMATION ----------------------------------*/
+/*------------------- animation ----------------------------------*/
 .BackGround_container {
     position: relative;
     width: 100%;
@@ -37,7 +41,7 @@ main h3 {
 
     font-size: 2000%;
     font-weight: bold;
-    color: rgba(0, 0, 0, 0.08);
+    color: rgba(0,0,0,0.08);
 
     transform-style: preserve-3d;
     animation: rotate3D 40s linear infinite;
@@ -62,11 +66,9 @@ main h3 {
                    rotateX(12deg);
     }
 }
+/*-------------------------------------------------*/
 
 
-
-
-/*----------------------------------------------------------------*/
 .BackGround_container .p1{
     text-align: center;
     max-width: 40%;
@@ -75,7 +77,6 @@ main h3 {
     line-height: 1.4;
 }
 
-/*-------------------------Button-----------------------------------*/
 .BackGround_container .btnGroup{
     display: flex;
     justify-content: center;
@@ -113,9 +114,7 @@ main h3 {
 .BackGround_container .btnGroup .btnDEMO:hover{
     background-color: #d9d9d9;
 }
-/*-----------------------------------------------------------------*/
 
-/* ------------------- TEXT GROUP --------------------------------- */
 .BackGround_container .textGroup_features{
     display: flex;
     justify-content: center;
@@ -149,9 +148,8 @@ main h3 {
     color:#b5b4b4;
 }
 
--------------------Table---------------------------------------
 .Introduction_container{
-    display: flex;
+    display: block;
     justify-content: center;
 }
 
@@ -185,10 +183,65 @@ main h3 {
     color: #9aa4b2;
     text-align: left;
 }
-/*-------------------Link---------------------------------------*/
+
 .Introduction_container a{
     text-decoration: none;
     color: #fff;
     font-weight: bold;
     border-bottom: 1px solid #fff;
+}
+
+/*----------responsive---------------*/
+@media (max-width: 768px){
+
+    header h1{
+        font-size: 28px;
+    }
+
+    header h2{
+        font-size: 18px;
+        margin-top: -20px;
+        margin-bottom: 60px;
+    }
+
+    main h3{
+        font-size: 28px;
+        max-width: 100%;
+    }
+
+    .BackGround_Animation{
+        font-size: 120px;
+    }
+
+    .BackGround_container .p1{
+        max-width: 90%;
+        font-size: 16px;
+    }
+
+    .textGroup_features{
+        visibility: hidden;
+    }
+
+    .btnGroup{
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .Introduction_container{
+        margin-top: -300px;
+    }
+
+    .Introduction_container h1{
+        font-size: 26px;
+    }
+
+    .Introduction_container h2{
+        font-size: 14px;
+    }
+
+    .Introduction_container th,
+    .Introduction_container td{
+        padding: 10px;
+        font-size: 13px;
+    }
 }

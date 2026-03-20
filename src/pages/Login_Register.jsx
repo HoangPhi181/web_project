@@ -3,7 +3,7 @@ import "../styles/Login_Register.css";
 
 export default function Login_Register() {
   return (
-    <div class="container">
+    <div class="login-register-container">
         <div class="login-container"> 
             <article class ="login-form">
                 <header>
