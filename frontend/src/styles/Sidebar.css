@@ -1,0 +1,51 @@
+.sidebar-container {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: calc(100vh - 60px);
+    color: white;
+} 
+
+.sidebar-container {
+    width: 260px; /* cố định chiều ngang */
+}
+
+.sidebar {
+    border-right: 2px solid #e46033;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 10px 16px;
+    color: white;
+    background: transparent;
+    border-bottom: solid 2px #e46033;
+    cursor: pointer;
+    text-align: left;   
+}
+.sidebar button:hover {
+    background-color: #e46033;
+    box-shadow: 0 0 20px #e46033;
+}
+
+.sidebar .items {
+    margin: 10px 20px;
+}
+
+.items li {
+    padding: 8px;
+    cursor: pointer;
+}
+
+.items li:hover {
+    background-color: #e46033;
+}
+
+.items li.active {
+  background-color: #e46033;
+  color: white;
+}

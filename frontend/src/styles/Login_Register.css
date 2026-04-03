@@ -1,0 +1,282 @@
+
+.login-register-container{
+    width: 950px;
+    max-width: 100%;
+    height: 550px;
+    margin: 120px auto;
+    position: relative;
+    color: #fff;
+}
+
+.login-container{
+    position: absolute;
+    width:100%;
+    height:100%;
+
+    display: flex;
+    background:black;
+    border: 2px solid #e46033;
+    box-shadow: 0 0 25px #e46033;
+    overflow: hidden;
+}
+
+.login-form{
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    padding-left: 70px;
+    padding: 0 60px;
+    color: white;
+}
+
+.login-form header{
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 25px;
+    text-align: center
+}
+
+.login-form input{
+    width: 100%;
+    height: 50px;
+    margin-top: 20px;
+
+    background: transparent;
+    border: none;
+    outline: none;
+
+    color:#fff;
+    font-size: 16px;
+    font-weight: 600;
+
+    border-bottom: 2px solid #fff;
+}
+
+.login-form button{
+    width: 100%;
+    height: 45px;
+    margin-top: 30px;
+
+    border-radius: 25px;
+    border: none;
+
+    background: linear-gradient(180deg,#e46033,#2c1108);
+
+    color:#fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.login-form button:hover{
+    box-shadow:0 0 25px #e46033;
+    transition: 0.5s;
+}
+
+.login-form p{
+    margin-top: 20px;
+    text-align: center;
+}
+
+.login-form a{
+    color:#e46033;
+    text-decoration: none;
+    font-weight: bold;
+    text-align: center;
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.login-form a:hover{
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.welcome-message-login{
+    width: 65%;
+    height: 100%;
+
+    background: linear-gradient(90deg,#2c1108,#c44f28);
+
+    padding: 60px;
+    text-align: right;
+
+    clip-path: polygon(0% 0%,100% 0%,100% 100%,40% 100%);
+}
+
+.welcome-message-login h1{
+    margin-left: auto;
+    width: 70%;
+    margin-top: 50px;
+    font-size: 50px;
+    font-weight: 800;
+}
+
+.welcome-message-login p{
+    margin-top: 23px;
+    line-height: 1.5;
+    font-size: 18px;
+    width: 46%;
+    margin-left: auto;
+}
+
+/*----------------------------------------------------------------------------*/
+
+.register-container {
+    position: absolute;
+    width:100%;
+    height:100%;
+
+    display: flex;
+    flex-direction: row-reverse; 
+    background:black;
+    border: 2px solid #e46033;
+    box-shadow: 0 0 25px #e46033;
+    color: white;
+}
+
+.welcome-message-register {
+    display: flex;
+    width: 60%;
+    height: 78.3%;
+    background: linear-gradient(270deg,#2c1108,#c44f28);
+    padding: 60px;
+    clip-path: polygon(0% 0%, 100% 0%, 75% 100%, 0% 100%);
+}
+
+.welcome-message-register h1 {
+    color: white;
+    font-size: 50px;
+    font-weight: 800;
+    margin-top: 100px;
+    margin-left: 0%;
+}
+
+.register-form {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 40px;
+    background: #000;
+    margin-right: 0;
+}
+
+.register-form header{
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.register-form select,
+.register-form input {
+    width: 100%;
+    height: 45px;
+    margin-top: 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid white;
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.register-form input:focus,
+.register-form select:focus {
+    border-bottom: 2px solid #e46033;
+}
+
+.register-form .country{
+    background-color: black;
+}
+
+.register-form button {
+    width: 100%;
+    height: 48px;
+    margin-top: 35px;
+    border-radius: 25px;
+    border: none;
+    background:linear-gradient(180deg,#2c1108,#c44f28);
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.4s;
+}
+
+.register-form button:hover {
+    box-shadow:0 0 25px #e46033;
+    transition:0.5s;
+}
+
+.register-form a {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-weight: bold;
+    color: #e46033;
+    text-decoration: none;
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.register-form a:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+    .login-register-container{
+        height: auto;
+    }
+
+    .login-container{
+        flex-direction: column;
+        position: relative;
+    }
+
+    .login-form{
+        width: 88%;
+        padding: 30px;
+    }
+
+    .welcome-message-login{
+        width: 95%;
+        clip-path: none;
+        text-align: center;
+        padding: 40px 20px;
+    }
+
+    .welcome-message-login h1,
+    .welcome-message-login p{
+        width: 100%;
+        margin-left: 0;
+    }
+
+
+    .register-container{
+        flex-direction: column;
+        position: relative;
+    }
+
+    .welcome-message-register,
+    .register-form{
+        width: 93.5%;
+        clip-path: none;
+    }
+
+    .welcome-message-register{
+        padding: 40px 20px;
+        text-align: center;
+
+    }
+
+    .register-form{
+        padding: 20px;
+    }
+}
+
+
