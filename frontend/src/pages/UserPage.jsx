@@ -1,42 +1,8 @@
 import React, { useState } from "react";
 import "../styles/UserPage.css";
 import { useNavigate } from "react-router-dom";
-
-function Header({onClickUserInfo}) {
-  return (
-    <header className="header">
-      <div className="logo">Nova</div>
-      <div className="icon-wallet">icon</div>
-      <div className="amount-wallet">0.00 USD</div>
-      <button className="icon-user-information" onClick={onClickUserInfo}>icon</button>
-    </header>
-  );
-}
-
-function Sidebar() {
-  return (
-    <nav className="sidebar">
-      <ul>
-        <li>
-          <button>Trading</button>
-          <ul className="items">
-            <li>My account</li>
-            <li>Performance</li>
-            <li>History of orders</li>
-          </ul>
-        </li>
-
-        <li>
-          <button>Payment & wallet</button>
-          <ul className="items">
-            <li>Deposit</li>
-            <li>Withdrawal</li>
-          </ul>
-        </li>
-      </ul>
-    </nav>
-  );
-}
+import Header from "./Header";
+import Sidebar from "./Sidebar";
 
 function AccountBox() {
   const navigate = useNavigate();

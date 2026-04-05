@@ -48,14 +48,18 @@ function MainContent({navigate}) {
   );
 }
 
-function TableRow({ name, link, desc, leverage, spread, overnight, type }) {
+function TableRow({ icon, name, link, desc, leverage, spread, overnight, type }) {
   return (
     <tr>
-        <td>
-            <a href={link}>{name}</a>
-            <br />
-            {desc}
+        <td className="symbol-cell">
+          <img src={icon} alt="" />
+
+          <div className="symbol-text">
+            <a href={link} className="symbol">{name}</a>
+            <span className="desc">{desc}</span>
+          </div>
         </td>
+
         <td>{leverage}</td>
         <td>{spread}</td>
         <td>{overnight}</td>
@@ -89,6 +93,7 @@ function Introduction() {
 
         <tbody>
           <TableRow
+            icon="/gold16x16.svg"
             name="XAU/USD"
             link="https://www.exness.com/vi/commodities/xauusd"
             desc="Vàng"
@@ -99,6 +104,7 @@ function Introduction() {
           />
 
           <TableRow
+            icon="/btc16x16.svg"
             name="BTC/USD"
             link="#"
             desc="Bitcoin"

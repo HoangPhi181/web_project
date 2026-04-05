@@ -64,7 +64,6 @@ export default function HistoryPage() {
       <style>
         {`
         .historyPage {
-          background: linear-gradient(300deg,#3a1104, #000);
           color: white;
           min-height: 100vh;
         }
@@ -132,11 +131,6 @@ export default function HistoryPage() {
         .loss {
           color: #ff4d4d;
           font-weight: bold;
-        }
-
-        .sidebar-container {
-          background: rgba(0,0,0,0.6);
-          border-right: 1px solid #222;
         }
         `}
       </style>

@@ -40,7 +40,6 @@ export default function WithdrawalPage() {
       <style>
         {`
         .withdrawal-container {
-            background: linear-gradient(300deg,#3a1104, #000);
             color: #fff;
             min-height: 100vh;
         }
@@ -54,7 +53,7 @@ export default function WithdrawalPage() {
             max-width: 700px;
             margin: 40px 500px;
             width: 90%;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.1);
             padding: 25px;
             border-radius: 4px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
@@ -126,11 +125,6 @@ export default function WithdrawalPage() {
         .withdrawal-layout button:hover {
             transform: scale(1.03);
             opacity: 0.9;
-        }
-
-        .sidebar-container {
-        border-right: 1px solid #222;
-        background: rgba(0,0,0,0.6);
         }
         `}
       </style>

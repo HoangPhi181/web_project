@@ -1,38 +1,41 @@
-import React from 'react'
-import "../styles/MarketPage.css"
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import "../styles/MarketPage.css";
+import PriceChart from "./PriceChart";
 
 export default function MarketPage() {
+  const navigate = useNavigate();
   return (
-    <div class="marketPage-container">
+    <div className="marketPage-container">
         <header>
-            <div class="logo">Nova</div>
-            <div class="symbol">XAU/USD</div>
-            <div class="balance">0.00 USD</div>
-            <button class="deposit">Deposit</button>
+            <div className="logo">Nova</div>
+            <div className="symbol">XAU/USD</div>
+            <div className="balance">0.00 USD</div>
+            <button className="deposit" onClick = {()=> navigate("/PaymentPage")}>Deposit</button>
         </header>
 
-        <main class="market-container">
+        <main className="market-container">
 
-            <nav class="sidebar">
+            <nav className="sidebar">
             <ul>
-                <li class ="active">XAU/USD</li>
+                <li className ="active">XAU/USD</li>
                 <li>BTC/USD</li>
                 <li>EUR/USD</li>
             </ul>
             </nav>
 
-            <section class="chart">
-            <div class="chart-placeholder">
-                BIỂU ĐỒ GIÁ
+            <section className="chart">
+            <div className="chart-placeholder">
+                {/* <PriceChart/> */}
             </div>
             </section>
 
-            <aside class="trade">
+            <aside className="trade">
                 <h3>XAU/USD</h3>
 
-                <div class="price">
-                    <button class="sell">SELL <br/> 0.00</button>
-                    <button class="buy">BUY <br/> 0.16</button>
+                <div className="price">
+                    <button className="sell">SELL <br/> 0.00</button>
+                    <button className="buy">BUY <br/> 0.16</button>
                 </div>
 
                 <label>Volume</label><input type="number" defaultValue="0.01" />
@@ -44,9 +47,10 @@ export default function MarketPage() {
 
         </main>
 
-        <section class="orders">
+        <section className="orders">
             <h3>Opening</h3>
             <table>
+            <thead>
             <tr>
                 <th>Symbol</th>
                 <th>Type</th>
@@ -57,19 +61,21 @@ export default function MarketPage() {
                 <th>S/L</th>
                 <th>P/L,USD</th>
             </tr>
+            </thead>
+            <tbody>
             <tr>
                 <td>XAU/USD</td>
-                <td class ="type">SELL</td>
+                <td className ="type">SELL</td>
                 <td>0.01</td>
                 <td>5,596.703</td>
                 <td>4,450.920</td>
                 <td>4,440</td>
                 <td>5,501.500</td>
-                <td class="profit">+1,145.28</td>
+                <td className="profit">+1,145.28</td>
             </tr>
+            </tbody>
             </table>
         </section>
     </div>
   )
 }
-

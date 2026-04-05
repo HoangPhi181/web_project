@@ -118,11 +118,6 @@ export default function PerformancePage() {
           background: linear-gradient(180deg, #ff6a00, #ff2e00);
           border-radius: 6px;
         }
-
-        .sidebar-container {
-          background: rgba(0,0,0,0.6);
-          border-right: 1px solid #222;
-        }
         `}
       </style>
 

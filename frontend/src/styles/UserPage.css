@@ -1,51 +1,7 @@
 
 .userPage-container {
-    background: linear-gradient(300deg,#3a1104, #000);
     color: white;
     font-size: 16px;
-}
-
-.header{
-    display: flex;
-    align-items: center;
-    height: 60px;
-    padding: 0 20px;
-    gap: 10px;
-    border-bottom: 2px solid #e46033;
-    flex-wrap: wrap;
-}
-
-.logo{
-    font-size: 32px;
-    font-weight: bold;
-    color: #e46033;
-    text-shadow: 0 0 15px #e46033;
-}
-
-.icon-wallet{
-    margin-left: auto;
-    margin-top: 10px;
-}
-
-.amount-wallet{
-    margin-top: 10px;
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.icon-user-information{
-    margin-top: 5px;
-    margin-left: 10px;
-    height: 40px;
-    padding: 10px;
-    color: white;
-    background-color: rgba(0,0,0,0.1);
-    border-radius: 4px;
-}
-
-.icon-user-information:hover{
-    border-color: #e46033;
-    box-shadow: 0 0 20px #5f23f8;
 }
 
 .user-container {
@@ -53,38 +9,6 @@
     grid-template-columns: 260px 1fr;
     min-height: calc(100vh - 60px);
 } 
-
-.sidebar {
-    border-right: 2px solid #e46033;
-}
-
-.sidebar ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-.sidebar button {
-    width: 100%;                 
-    padding: 10px 16px;        
-    color: white;
-    background: transparent;
-    border-bottom: solid 2px #e46033;
-    cursor: pointer;
-    text-align: left;            
-}
-
-.sidebar button:hover {
-    background-color: #e46033;
-    box-shadow: 0 0 20px #e46033 ;
-}
-
-.sidebar .items {
-    margin: 10px 20px;
-}
-
-.items li:hover {
-    background-color: #e46033;
-}
 
 /*------------ main(home page) ---------------*/
 .main-container{
@@ -137,7 +61,7 @@
 
 .unit .addAccount:hover{
     border-color: #e46033;
-    background: linear-gradient(180deg,#5f23f8,#e46033);
+    background: linear-gradient(180deg,#e46033, #ffd773);
 }
 
 .account-box {
@@ -170,22 +94,21 @@
     margin-top: 10px;
     color: white;
     font-weight: bold;
-    background: linear-gradient(90deg,#e46033,#5f23f8);
+    background: linear-gradient(90deg,#e46033,#ffd773);
     border-radius: 4px;
 }
 
 .account-box button:hover {
-    box-shadow: 0 0 25px #e46033;
-    border-color: #5f23f8;
+    box-shadow: 0 0 25px #ffd773;
+    border-color: #e0960d;
 }
 
 footer {
     padding: 20px;
 }
 
-/*------------main(open-account page) - main(user-information page)---------------------*/
-.open-account,
-.user-information {
+/*------------main(open-account page)---------------------*/
+.open-account {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -197,13 +120,6 @@ footer {
     border-radius: 6px;
     padding: 20px;
 }
-
-/* .open-account{
-    visibility: hidden;
-}
-.user-information{
-    visibility: hidden;
-} */
 
 .account-real, .account-demo {
     display: flex;
@@ -237,12 +153,12 @@ footer {
 }
 
 .open-account .continue {
-    background: linear-gradient(90deg, #5f23f8, #e46033);
+    background: linear-gradient(90deg, #e46033, #ffd773);
 }
 
 .open-account .continue:hover {
-    border-color: #5f23f8;
-    box-shadow: 0 0 20px #e46033;
+    border-color: #e0960d;
+    box-shadow: 0 0 20px #ffd773;
 }
 
 .open-account .back {
@@ -253,63 +169,6 @@ footer {
     border-color: #ccc;
     box-shadow: 0 0 20px #ccc;
 }
-
-
-.user-information input {
-    width: 90%;
-    padding: 12px;
-    margin-left: 10px;
-    margin-top: 10px;
-    color: white;
-    background-color: rgba(0,0,0,0.3);
-    border-color: rgba(0,0,0,0.3);
-    border-bottom: solid 1px #ddd;
-}
-
-.user-information h1 {
-    margin-left: 10px;
-}
-
-.user-container h3 {
-    font-size: 21px;
-}
-
-.user-information span {
-    display: block;
-    width: 75%;
-    margin-left: 10px;
-    padding: 15px 50px;
-    border-bottom: solid 1px #ddd;
-}
-
-.user-information button {
-    display: inline;
-    width: 48%;
-    border-radius: 6px;
-    padding: 12px 12px;
-    margin-top: 20px;
-}
-
-.user-information .exit {
-    background-color: #ccc;
-    margin-left: 10px;
-}
-
-.user-information .update {
-    color: white;
-    background: linear-gradient(90deg, #5f23f8, #e46033);
-}
-
-.user-information .exit:hover {
-    border-color: #ccc;
-    box-shadow: 0 0 20px #ccc;
-}
-
-.user-information .update:hover {
-    border-color: #5f23f8;
-    box-shadow: 0 0 20px #e46033;
-}
-
 
 /*-------------responsive---------------*/
 @media (max-width: 768px) {

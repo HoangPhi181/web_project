@@ -69,8 +69,8 @@ export default function Header() {
             }
 
             .icon-user-information:hover{
-                border-color: #e46033;
-                box-shadow: 0 0 20px #5f23f8;
+                border-color: #ffd773;
+                box-shadow: 0 0 20px #e0960d;;
             }
 
             .icon-user-information img{
@@ -109,7 +109,7 @@ export default function Header() {
         <header className="header">
             <div className="logo">Nova</div>
             <div className="icon-wallet">💰</div>
-            <div className="amount-wallet">1,250 USD</div>
+            <div className="amount-wallet">0,00 USD</div>
             <button className="icon-user-information"  onClick={() => setShow(!show)} >
                 <img src ={avatar || "avatar.png"}
                 alt="avatar" />
@@ -117,7 +117,7 @@ export default function Header() {
             {show && (
                 <div className="dropdown">
                     <div onClick={() => navigate("/User_InformationPage")}>Information</div>
-                    <div onClick={() => navigate("/HomePage")}>Exit</div>
+                    <div onClick={() => navigate("/Login_Register")}>Exit</div>
                 </div>
             )}
         </header>

@@ -214,15 +214,65 @@ main h3 {
     text-align: left;
 }
 
-.Introduction_container a{
+.symbol-cell {
+    display: flex !important;        
+    align-items: center;    
+    gap: 10px;             
+}
+
+.symbol-cell img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;         
+}
+
+.symbol-text {
+    display: flex;
+    flex-direction: column; 
+}
+
+.symbol {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.desc {
+    font-size: 13px;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.Introduction_container a {
     text-decoration: none;
     color: #fff;
-    font-weight: bold;
-    border-bottom: 1px solid #fff;
+    font-weight: 600;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.Introduction_container a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background: #fff;
+    transition: width 0.3s ease;
+}
+
+.Introduction_container a:hover::after {
+    width: 100%;
+}
+
+.Introduction_container a:hover {
+    color: #00d4ff;
 }
 
 /*----------responsive---------------*/
-@media (max-width: 768px){
+@media (max-width: 900px){
 
     header h1{
         font-size: 28px;
@@ -238,7 +288,7 @@ main h3 {
         font-size: 28px;
         max-width: 100%;
     }
-
+    
     .BackGround_Animation{
         font-size: 120px;
     }
@@ -253,12 +303,24 @@ main h3 {
     }
 
     .btnGroup{
-        flex-direction: row;
+        display: flex;
+        flex-direction: column;
         align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .btnGroup button{
+        width: 90%;
+    }
+
+    .image-box{
+        display: none;
     }
 
     .Introduction_container{
-        margin-top: -300px;
+        margin-top: -250px;
     }
 
     .Introduction_container h1{

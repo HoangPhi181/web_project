@@ -1,50 +1,6 @@
 .paymentPage-container{
-    background: linear-gradient(300deg,#3a1104, #000);
     color: white;
     font-size: 16px;
-}
-
-.header{
-    display: flex;
-    align-items: center;
-    height: 60px;
-    padding: 0 20px;
-    gap: 10px;
-    border-bottom: 2px solid #e46033;
-    flex-wrap: wrap;
-}
-
-.logo{
-    font-size: 32px;
-    font-weight: bold;
-    color: #e46033;
-    text-shadow: 0 0 15px #e46033;
-}
-
-.icon-wallet{
-    margin-left: auto;
-    margin-top: 10px;
-}
-
-.amount-wallet{
-    margin-top: 10px;
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.icon-user-information{
-    margin-top: 5px;
-    margin-left: 10px;
-    height: 40px;
-    padding: 10px;
-    color: white;
-    background-color: rgba(0,0,0,0.1);
-    border-radius: 4px;
-}
-
-.icon-user-information:hover{
-    border-color: #e46033;
-    box-shadow: 0 0 20px #5f23f8;
 }
 
 .paymentPage-container .payment-container {

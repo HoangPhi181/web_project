@@ -34,84 +34,112 @@ export default function User_InformationPage() {
         {`
             .user-information {
                 position: fixed;
-                top: 50%;
+                top: 52%;
                 left: 55%;
-                transform: translate(-45%, -45%);
+                transform: translate(-50%, -50%);
                 width: 100%;
-                max-width: 700px;
-                background: rgba(0,0,0,0.5);
-                border: solid 2px #ccc;
-                border-radius: 6px;
-                padding: 20px;
-            }
-            
-            .user-information input {
-                width: 93%;
-                padding: 15px;
-                border-radius: 4px;
-                margin-left: 10px;
-                margin-top: 10px;
+                max-width: 500px;
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(15px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+                padding: 30px 30px 30px 30px;
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
                 color: white;
-                background-color: rgba(0,0,0,0.3);
-                border-color: rgba(0,0,0,0.3);
-                border: solid 1px #ddd;
             }
 
             .user-information h1 {
-                color: white;
-                margin-left: 10px;
+                text-align: center;
+                font-size: 28px;
+                font-weight: 600;
+                margin-bottom: 25px;
             }
 
-            .user-container h3 {
-                font-size: 21px;
+            .setAvatar img {
+                width: 140px;
+                height: 140px;
+                border-radius: 50%;
+                object-fit: cover;
+                display: block;
+                margin: 0 auto 35px auto;
+                border: 4px solid #333;
+                outline: 3px solid #ffd773;
+                outline-offset: 4px;
+                box-shadow: 0 0 30px rgba(255, 215, 115, 0.2);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            .setAvatar img:hover {
+                transform: rotate(10deg) scale(1.05);
+                outline-color: #ff9f43;
+            }
+
+            .user-information input {
+                width: 96%;
+                box-sizing: border-box;
+                padding: 12px 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                color: white;
+                background: rgba(255, 255, 255, 0.07);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                outline: none;
+                transition: all 0.3s ease;
+            }
+
+            .user-information input:focus {
+                background: rgba(255, 255, 255, 0.12);
+                border-color: #e46033;
+            }
+
+            .user-information .button-group {
+                display: flex;
+                justify-content: space-between;
+                gap: 15px;
+                margin-top: 10px;
             }
 
             .user-information button {
-                display: inline;
-                width: 48%;
-                border-radius: 6px;
-                padding: 12px 12px;
-                margin-top: 20px;
-                margin-left:15px;
+                flex: 1;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 95px;
+                margin-right: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
             }
 
             .user-information .exit {
-                background-color: #ccc;
-                margin-left: 10px;
-            }
-
-            .user-information .update {
-                color: white;
-                background: linear-gradient(90deg, #5f23f8, #e46033);
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #a0a0a0;
             }
 
             .user-information .exit:hover {
-                border-color: #ccc;
-                box-shadow: 0 0 20px #ccc;
+                color: white;
+                border: solid 1px white;
+            }
+
+            .user-information .update {
+                color: black;
+                background: linear-gradient(90deg, #e46033, #ffd773);
             }
 
             .user-information .update:hover {
-                border-color: #5f23f8;
-                box-shadow: 0 0 20px #e46033;
-            }
-            
-            .user-information h1{
-                text-align: center;
-            }
-            .setAvatar img {
-                width: 120px;
-                height: 120px;
-                border-radius: 50%;
-                object-fit: cover;
-                border: 2px solid white;
-                box-shadow: 0 0 15px rgba(255,255,255,0.4);
-                display: block;
-                margin: 0 auto;
+                border: solid 1px #e49d33;
+                color: white;
+                box-shadow: 0 5px 15px rgba(228, 96, 51, 0.4);
             }
 
-            .setAvatar .avatar-img:hover {
-                transform: scale(1.05);
-                box-shadow: 0 0 15px #e46033; /* bóng cam khi hover */
+            @media (max-height: 600px) {
+                .user-information {
+                    top: 20%;
+                    left: 50%;
+                    transform: translate(-50%, 0);
+                    margin: 20px 0;
+                    position: absolute;
+                }
             }
         `}
         </style>

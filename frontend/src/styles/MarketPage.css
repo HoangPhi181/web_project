@@ -191,8 +191,6 @@ input[type=number]::-webkit-outer-spin-button {
     color: #27ae60;
 }
 
-
-
 /*-----------------------------responsive-------------------*/
 @media (max-width: 768px) {
     .marketPage-container header {
