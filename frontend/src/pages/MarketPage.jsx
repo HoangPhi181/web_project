@@ -26,7 +26,7 @@ export default function MarketPage() {
 
             <section className="chart">
             <div className="chart-placeholder">
-                {/* <PriceChart/> */}
+                <PriceChart/>
             </div>
             </section>
 

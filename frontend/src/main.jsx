@@ -34,7 +34,7 @@ function App() {
         <Route path="/WithdrawalPage" element={<WithdrawalPage />} />
         <Route path="/Header" element={<Header />} />
         <Route path="/Sidebar" element={<Sidebar />} />
-        {/* <Route path="/PriceChart" element={<PriceChart />} /> */}
+        <Route path="/PriceChart" element={<PriceChart />} />
       </Routes>
     </BrowserRouter>
   );
