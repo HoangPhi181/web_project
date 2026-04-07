@@ -1,11 +1,37 @@
 import React, {useState} from 'react'
 import "../styles/Login_Register.css";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Login({onSwitch}) {
     const navigate = useNavigate(); 
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
+
+    const handleLogin = async (e) => {
+        e.preventDefault(); // Ngăn trang web load lại
+        try {
+            // 2. Gọi API login từ backend
+            const res = await axios.post("http://localhost:5000/api/auth/login", {
+                email,
+                password
+            });
+
+            // 3. Lưu JWT Token vào localStorage
+            localStorage.setItem("token", res.data.token);
+            alert("Đăng nhập thành công!");
+            
+            // 4. Chuyển hướng
+            navigate("/UserPage");
+        } catch (error) {
+            alert(error.response?.data?.message || "Đăng nhập thất bại");
+        }
+    }
+
+
     return (
-        <form className="login-container"> 
+        <form className="login-container" onSubmit={handleLogin}> 
             <article className="login-form">
                 <header>
                     <h1>Login</h1>
@@ -16,6 +42,8 @@ function Login({onSwitch}) {
                     name="email" 
                     placeholder="Email"
                     required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                 />
 
                 <input 
@@ -23,9 +51,11 @@ function Login({onSwitch}) {
                     name="password" 
                     placeholder="Password"
                     required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                 />
 
-                <button onClick={()=>navigate("/UserPage")}>Login</button>
+                <button type = "submit">Login</button>
                 <p>Don't have an account?</p>
                 <a href="#" onClick={onSwitch}>Register</a>
             </article>
@@ -39,8 +69,27 @@ function Login({onSwitch}) {
 }
 
 function Register({onSwitch}) {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        try {
+            const defaultUsername = 'User_${Math.floor(Math.random() * 1000)}';
+            const res = await axios.post("http://localhost:5000/api/auth/register",{
+                username: defaultUsername,
+                email,
+                password
+            });
+            alert(`Đăng ký thành công! Tên tạm thời của bạn là: ${defaultUsername}`);
+            onSwitch();
+        } catch (error) {
+            alert(error.response?.data?.message || "Đăng ký thất bại");
+        }
+    }
+
     return (
-        <form className="register-container">
+        <form className="register-container" onSubmit={handleRegister}>
             <article className="register-form">
                 <header>
                     <h1>Register</h1>
@@ -60,6 +109,7 @@ function Register({onSwitch}) {
                     name="email" 
                     placeholder="Email"
                     required 
+                    onChange={(e) => setEmail(e.target.value)}
                 />
 
                 <input 
@@ -67,6 +117,7 @@ function Register({onSwitch}) {
                     name="password" 
                     placeholder="Password"
                     required 
+                    onChange={(e) => setPassword(e.target.value)}
                 />
 
                 <button type="submit">Register</button>

@@ -9,7 +9,7 @@ export default function MarketPage() {
     <div className="marketPage-container">
         <header>
             <div className="logo">Nova</div>
-            <div className="symbol">XAU/USD</div>
+            <div className="symbol">BTC/USD</div>
             <div className="balance">0.00 USD</div>
             <button className="deposit" onClick = {()=> navigate("/PaymentPage")}>Deposit</button>
         </header>
@@ -18,8 +18,8 @@ export default function MarketPage() {
 
             <nav className="sidebar">
             <ul>
-                <li className ="active">XAU/USD</li>
-                <li>BTC/USD</li>
+                <li className ="active">BTC/USD</li>
+                <li>XAU/USD</li>
                 <li>EUR/USD</li>
             </ul>
             </nav>
