@@ -40,16 +40,15 @@
     color: white;
     border-color: rgba(0,0,0,0.1);
     background-color: rgba(0,0,0,0.1);
+    margin-left: 3px;
 
 }
 
-.btnGroup button:hover{
+.btnGroup button.active{
     background-color: #e46033;
 }
 
-.btnGroup .real {
-    margin-left: 2px;
-    margin-right: 5px;
+.btnGroup button:hover{
     background-color: #e46033;
 }
 
@@ -64,29 +63,54 @@
     background: linear-gradient(180deg,#e46033, #ffd773);
 }
 
+.account-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
 .account-box {
     margin-top: 10px;
     padding: 10px 20px;
     border: solid 1px #ddd;
     border-radius: 4px;
-    width: 100%;
-    max-width: 300px;
+    width: 300px;
 }
 
 .account-box h3 {
     display: inline;
     font-size: 21px;
-    border-bottom: solid 1px #ddd;
+    margin-left: 15px;
 }
-
-.account-box .accountID {
-    margin-left: 10px;
-    border-bottom: none;
+.account-box span h3 {
+    font-size: 15px;
+    margin-left: 4px;
+    text-transform: capitalize;
+}
+.account-box .real {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    margin-bottom: 12px;
+}
+.account-box .demo {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(64, 150, 130, 0.3);
+    color: #0bff0b;
+    margin-bottom: 12px;
 }
 
 .account-box p {
     border-bottom: dashed 1px #ddd;
 }
+
 
 .account-box button {
     width: 100%;
@@ -131,14 +155,14 @@ footer {
 }
 
 .account-real h2, .account-demo h2 {
-    margin-top: 11%; 
+    margin-top: 8%; 
 }
 .account-real h2 {
     margin-right: 4%;
 }
 
 .account-real h3, .account-demo h3 {
-    margin-top: 12%; 
+    margin-top: 8%; 
 }
 
 .account-real p, .account-demo p {
