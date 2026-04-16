@@ -7,6 +7,7 @@ CREATE TABLE users (
  user_id INT AUTO_INCREMENT PRIMARY KEY,
  username VARCHAR(50) UNIQUE NOT NULL,
  email VARCHAR(100) UNIQUE NOT NULL,
+ country VARCHAR(50),
  password_hash VARCHAR(255) NOT NULL,
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -30,7 +31,8 @@ CREATE TABLE products (
  category ENUM('crypto','forex','gold') NOT NULL,
  current_price DECIMAL(18,8) DEFAULT 0,
  is_active BOOLEAN DEFAULT TRUE,
- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- ORDERS
@@ -97,5 +99,5 @@ CREATE INDEX idx_accounts_user ON accounts(user_id);
 
 -- INSERT SAMPLE PRODUCTS
 INSERT INTO products (symbol, name, category, current_price, is_active) VALUES
-('BTC-USD', 'Bitcoin', 'crypto', 45000.00000000, TRUE),
+('BTC-USD', 'Bitcoin', 'crypto', 45000.00000000, TRUE);
 

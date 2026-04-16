@@ -20,6 +20,7 @@ const {
   ValidationError,
   InsufficientBalanceError,
   NotFoundError,
+  UnauthorizedError,
   ConflictError
 } = require("../utils/errors");
 
@@ -273,7 +274,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
         o.order_id, o.account_id, o.product_id,
         o.side, o.volume, o.open_price,
         o.stop_loss, o.take_profit, o.status,
-        a.user_id
+        a.user_id, a.leverage
       FROM orders o
       JOIN accounts a ON o.account_id = a.account_id
       WHERE o.order_id = ?
@@ -292,7 +293,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
 
       // 3. VERIFY USER OWNERSHIP
       if (order.user_id !== userId) {
-        return next(new Error('Unauthorized access'));
+        return next(new UnauthorizedError('You do not own this order'));
       }
 
       // 4. CHECK IF ORDER IS OPEN
@@ -324,7 +325,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
         const requiredMargin = calculateRequiredMargin(
           order.open_price,
           order.volume,
-          100 // default leverage
+          order.leverage
         );
 
         // 8. CLOSE ORDER - START TRANSACTION

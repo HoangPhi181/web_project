@@ -61,8 +61,8 @@ function stopScheduler() {
 function getSchedulerStatus() {
   return {
     isRunning,
-    intervalMinutes: SYNC_INTERVAL_MINUTES,
-    nextSyncIn: isRunning ? `${SYNC_INTERVAL_MINUTES} minute(s)` : 'N/A'
+    intervalSeconds: SYNC_INTERVAL_SECONDS,
+    nextSyncIn: isRunning ? `${SYNC_INTERVAL_SECONDS} second(s)` : 'N/A'
   };
 }
 
