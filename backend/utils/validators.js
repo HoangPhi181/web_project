@@ -92,8 +92,48 @@ function validatePagination(query) {
   };
 }
 
+function validateRegister(body) {
+  const errors = {};
+
+  // Validate username
+  if (!body.username || typeof body.username !== 'string') {
+    errors.username = 'Username is required';
+  } else if (body.username.length < 3 || body.username.length > 50) {
+    errors.username = 'Username must be between 3 and 50 characters';
+  } else if (!/^[a-zA-Z0-9_]+$/.test(body.username)) {
+    errors.username = 'Username can only contain letters, numbers, and underscores';
+  }
+
+  // Validate email
+  if (!body.email || typeof body.email !== 'string') {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    errors.email = 'Invalid email format';
+  }
+
+  // Validate password
+  if (!body.password || typeof body.password !== 'string') {
+    errors.password = 'Password is required';
+  } else if (body.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters long';
+  } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(body.password)) {
+    errors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError('Validation failed', errors);
+  }
+
+  return {
+    username: body.username.trim(),
+    email: body.email.trim().toLowerCase(),
+    password: body.password
+  };
+}
+
 module.exports = {
   validateOrderCreate,
   validateCloseOrder,
-  validatePagination
+  validatePagination,
+  validateRegister
 };

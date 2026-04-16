@@ -20,9 +20,7 @@ const BINANCE_BASE_URL = 'https://api.binance.com/api/v3';
 
 // Supported symbols mapping (our products to Binance symbols)
 const SYMBOL_MAPPING = {
-  'BTC-USD': 'BTCUSDT',
-  'ETH-USD': 'ETHUSDT',
-  'XRP-USD': 'XRPUSDT'
+  'BTC-USD': 'BTCUSDT'
 };
 
 // Timeframe mapping (our timeframe to Binance interval)

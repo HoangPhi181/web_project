@@ -12,7 +12,13 @@ class AppError extends Error {
 }
 
 class ValidationError extends AppError {
-  constructor(message, errors = {}) {
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Constructor for ValidationError
+ * @param {string} message - Error message
+ * @param {Object} [errors={}] - Object with key-value pairs of field names and error messages
+ */
+/*******  2e4b8e44-875d-4d10-8269-bbbc3af9b426  *******/  constructor(message, errors = {}) {
     super(message, 400);
     this.errors = errors;
   }
