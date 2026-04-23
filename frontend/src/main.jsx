@@ -11,11 +11,15 @@ import HistoryPage from "./pages/HistoryPage";
 import PaymentPage from "./pages/PaymentPage";
 import PerformancePage from "./pages/PerformancePage";
 import QRPage from "./pages/QRPage";
-import User_InformationPage from "./pages/User_InformationPage";
 import WithdrawalPage from "./pages/WithdrawalPage";
-import Header from "./pages/Header";
-import Sidebar from "./pages/Sidebar";
 import PriceChart from "./pages/PriceChart";
+import ProfilePage from "./pages/ProfilePage";
+
+import Dashboard from "./pages/admin/Dashboard";
+import ManageUsers from "./pages/admin/ManageUsers";
+import VerifyRequests from "./pages/admin/VerifyRequests";
+import CreateCode from "./pages/admin/CreateCode";
+
 
 function App() {
   return (
@@ -30,11 +34,14 @@ function App() {
         <Route path="/PaymentPage" element={<PaymentPage />} />
         <Route path="/PerformancePage" element={<PerformancePage />} />
         <Route path="/QRPage" element={<QRPage />} />
-        <Route path="/User_InformationPage" element={<User_InformationPage />} />
+        <Route path="/ProfilePage" element={<ProfilePage />} />
         <Route path="/WithdrawalPage" element={<WithdrawalPage />} />
-        <Route path="/Header" element={<Header />} />
-        <Route path="/Sidebar" element={<Sidebar />} />
         <Route path="/PriceChart" element={<PriceChart />} />
+
+        <Route path="/admin" element={<Dashboard />} />
+        <Route path="/admin/users" element={<ManageUsers />} />
+        <Route path="/admin/verify" element={<VerifyRequests />} />
+        <Route path="/admin/code" element={<CreateCode />} />
       </Routes>
     </BrowserRouter>
   );

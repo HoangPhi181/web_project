@@ -6,7 +6,7 @@
  * Formula: (current_price × volume × 100) / leverage
  */
 function calculateRequiredMargin(currentPrice, volume, leverage = 100) {
-  return (parseFloat(currentPrice) * parseFloat(volume) * 100) / leverage;
+  return (parseFloat(currentPrice) * parseFloat(volume)) / leverage;
 }
 
 /**

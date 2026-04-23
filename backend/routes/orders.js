@@ -20,6 +20,7 @@ const {
   ValidationError,
   InsufficientBalanceError,
   NotFoundError,
+  UnauthorizedError,
   ConflictError
 } = require("../utils/errors");
 
@@ -30,138 +31,78 @@ const router = express.Router();
 // ============================================================
 router.post("/create", verifyToken, (req, res, next) => {
   try {
-    // 1. VALIDATE INPUT
     const validated = validateOrderCreate(req.body);
     const userId = req.userId;
 
-    // 2. GET USER ACCOUNT & PRODUCT INFO
-    const accountQuery = `
-      SELECT a.account_id, a.balance, a.used_margin, a.leverage, a.user_id
-      FROM accounts a
-      WHERE a.user_id = ?
-    `;
+    // 2. GET USER ACCOUNT
+    const accountQuery = `SELECT account_id, balance, used_margin, leverage FROM accounts WHERE user_id = ?`;
 
     db.query(accountQuery, [userId], (err, accountResults) => {
-      if (err) {
-        return next(new Error("Database error: " + err.message));
-      }
-
-      if (!accountResults || accountResults.length === 0) {
-        return next(new NotFoundError("Account"));
-      }
+      if (err) return next(new Error("Database error: " + err.message));
+      if (!accountResults?.length) return next(new NotFoundError("Account"));
 
       const account = accountResults[0];
 
-      // 3. GET PRODUCT INFO & CURRENT PRICE
-      const productQuery = `
-        SELECT product_id, symbol, current_price, is_active
-        FROM products
-        WHERE product_id = ?
-      `;
+      // 3. GET PRODUCT INFO
+      const productQuery = `SELECT product_id, symbol, current_price, is_active FROM products WHERE product_id = ?`;
 
       db.query(productQuery, [validated.product_id], (err, productResults) => {
-        if (err) {
-          return next(new Error("Database error: " + err.message));
-        }
-
-        if (!productResults || productResults.length === 0 || !productResults[0].is_active) {
-          return next(new NotFoundError("Product"));
-        }
+        if (err) return next(new Error("Database error: " + err.message));
+        if (!productResults?.length || !productResults[0].is_active) return next(new NotFoundError("Product"));
 
         const product = productResults[0];
-        const currentPrice = formatDecimal(product.current_price || 0);
+        const openPrice = parseFloat(product.current_price || 0);
 
-        // 4. VALIDATE PRICE LOGIC
+        // 4. VALIDATE PRICE LOGIC (Hỗ trợ NULL)
         const errors = {};
-        const openPrice = parseFloat(currentPrice);
-        const stopLoss = parseFloat(validated.stop_loss);
-        const takeProfit = parseFloat(validated.take_profit);
+        const sl = validated.stop_loss !== null ? parseFloat(validated.stop_loss) : null;
+        const tp = validated.take_profit !== null ? parseFloat(validated.take_profit) : null;
 
         if (validated.side === 'BUY') {
-          if (stopLoss >= openPrice) {
-            errors.stop_loss = 'For BUY: stop_loss must be < open_price';
-          }
-          if (takeProfit <= openPrice) {
-            errors.take_profit = 'For BUY: take_profit must be > open_price';
-          }
-        } else {
-          if (stopLoss <= openPrice) {
-            errors.stop_loss = 'For SELL: stop_loss must be > open_price';
-          }
-          if (takeProfit >= openPrice) {
-            errors.take_profit = 'For SELL: take_profit must be < open_price';
-          }
+          if (sl !== null && sl >= openPrice) errors.stop_loss = 'For BUY: SL must be < open price';
+          if (tp !== null && tp <= openPrice) errors.take_profit = 'For BUY: TP must be > open price';
+        } else { // SELL
+          if (sl !== null && sl <= openPrice) errors.stop_loss = 'For SELL: SL must be > open price';
+          if (tp !== null && tp >= openPrice) errors.take_profit = 'For SELL: TP must be < open price';
         }
 
         if (Object.keys(errors).length > 0) {
           return next(new ValidationError('Price validation failed', errors));
         }
 
-        // 5. CALCULATE REQUIRED MARGIN
-        const requiredMargin = calculateRequiredMargin(
-          currentPrice,
-          validated.volume,
-          account.leverage
-        );
-
+        // 5. CALCULATE MARGIN
+        const requiredMargin = calculateRequiredMargin(openPrice, validated.volume, account.leverage);
         const totalUsedMargin = parseFloat(account.used_margin) + requiredMargin;
-        const availableBalance = parseFloat(account.balance);
 
-        // 6. CHECK BALANCE
-        if (availableBalance < totalUsedMargin) {
-          return next(
-            new InsufficientBalanceError(
-              formatDecimal(totalUsedMargin),
-              formatDecimal(availableBalance)
-            )
-          );
+        if (parseFloat(account.balance) < totalUsedMargin) {
+          return next(new InsufficientBalanceError(formatDecimal(totalUsedMargin), formatDecimal(account.balance)));
         }
 
-        // 7. CREATE ORDER - START TRANSACTION
+        // 6. START TRANSACTION
         db.query('START TRANSACTION', (err) => {
-          if (err) {
-            return next(new Error('Transaction error: ' + err.message));
-          }
+          if (err) return next(new Error('Transaction error: ' + err.message));
 
-          // Update account - add used_margin
-          const updateAccountQuery = `
-            UPDATE accounts
-            SET used_margin = used_margin + ?
-            WHERE account_id = ?
-          `;
-
+          const updateAccountQuery = `UPDATE accounts SET used_margin = used_margin + ? WHERE account_id = ?`;
           db.query(updateAccountQuery, [requiredMargin, account.account_id], (err) => {
             if (err) {
               db.query('ROLLBACK');
               return next(new Error('Update account error: ' + err.message));
             }
 
-            // Insert order
             const insertOrderQuery = `
-              INSERT INTO orders (
-                account_id, product_id, side, volume,
-                open_price, stop_loss, take_profit, status
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')
+              INSERT INTO orders (account_id, product_id, side, volume, open_price, stop_loss, take_profit, status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')
             `;
 
             db.query(
               insertOrderQuery,
-              [
-                account.account_id,
-                validated.product_id,
-                validated.side,
-                validated.volume,
-                currentPrice,
-                validated.stop_loss,
-                validated.take_profit
-              ],
+              [account.account_id, validated.product_id, validated.side, validated.volume, openPrice, sl, tp],
               (err, result) => {
                 if (err) {
                   db.query('ROLLBACK');
                   return next(new Error('Insert order error: ' + err.message));
                 }
 
-                // Commit transaction
                 db.query('COMMIT', (err) => {
                   if (err) {
                     db.query('ROLLBACK');
@@ -171,7 +112,7 @@ router.post("/create", verifyToken, (req, res, next) => {
                   res.status(201).json({
                     message: 'Order created successfully',
                     order_id: result.insertId,
-                    open_price: currentPrice,
+                    open_price: openPrice,
                     symbol: product.symbol,
                     status: 'OPEN',
                     required_margin: formatDecimal(requiredMargin)
@@ -187,11 +128,10 @@ router.post("/create", verifyToken, (req, res, next) => {
     next(error);
   }
 });
-
 // ============================================================
 // API 2: GET /api/orders - Danh sách lệnh đang mở
 // ============================================================
-router.get("/", verifyToken, (req, res, next) => {
+router.get("/opening", verifyToken, (req, res, next) => {
   try {
     const userId = req.userId;
 
@@ -251,7 +191,72 @@ router.get("/", verifyToken, (req, res, next) => {
     next(error);
   }
 });
+/*-------------------------------------------------------------------*/
+router.get("/balance", verifyToken, (req, res) => {
+    try {
+        const userId = req.userId;
 
+        const query = `
+            SELECT 
+                a.account_id,
+                a.balance,
+
+                COALESCE(SUM(
+                    CASE 
+                        WHEN o.side = 'BUY' THEN (IFNULL(p.current_price,0) - o.open_price) * o.volume
+                        WHEN o.side = 'SELL' THEN (o.open_price - IFNULL(p.current_price,0)) * o.volume
+                        ELSE 0
+                    END
+                ), 0) AS floating_pnl,
+
+                a.balance + COALESCE(SUM(
+                    CASE 
+                        WHEN o.side = 'BUY' THEN (IFNULL(p.current_price,0) - o.open_price) * o.volume
+                        WHEN o.side = 'SELL' THEN (o.open_price - IFNULL(p.current_price,0)) * o.volume
+                        ELSE 0
+                    END
+                ), 0) AS equity
+
+            FROM accounts a
+
+            LEFT JOIN orders o 
+                ON a.account_id = o.account_id 
+                AND o.status = 'OPEN'
+
+            LEFT JOIN products p 
+                ON o.product_id = p.product_id
+
+            WHERE a.user_id = ?
+
+            GROUP BY a.account_id
+        `;
+
+        db.query(query, [userId], (err, rows) => {
+            if (err) {
+                console.error("🔥 BALANCE ERROR:", err);
+
+                return res.status(500).json({
+                    message: "Lỗi server",
+                    error: err.message,
+                    sql: err.sqlMessage
+                });
+            }
+
+            res.json({
+                success: true,
+                data: rows
+            });
+        });
+
+    } catch (err) {
+        console.error("🔥 CATCH ERROR:", err);
+
+        res.status(500).json({
+            message: "Lỗi server",
+            error: err.message
+        });
+    }
+});
 // ============================================================
 // API 3: POST /api/orders/{id}/close - Đóng lệnh
 // ============================================================
@@ -273,7 +278,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
         o.order_id, o.account_id, o.product_id,
         o.side, o.volume, o.open_price,
         o.stop_loss, o.take_profit, o.status,
-        a.user_id
+        a.user_id, a.leverage
       FROM orders o
       JOIN accounts a ON o.account_id = a.account_id
       WHERE o.order_id = ?
@@ -292,7 +297,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
 
       // 3. VERIFY USER OWNERSHIP
       if (order.user_id !== userId) {
-        return next(new Error('Unauthorized access'));
+        return next(new UnauthorizedError('You do not own this order'));
       }
 
       // 4. CHECK IF ORDER IS OPEN
@@ -324,7 +329,7 @@ router.post("/:id/close", verifyToken, (req, res, next) => {
         const requiredMargin = calculateRequiredMargin(
           order.open_price,
           order.volume,
-          100 // default leverage
+          order.leverage
         );
 
         // 8. CLOSE ORDER - START TRANSACTION

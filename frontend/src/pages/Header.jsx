@@ -131,7 +131,7 @@ export default function Header() {
 
                 {show && (
                     <div className="dropdown">
-                        <div onClick={() => { navigate("/User_InformationPage"); setShow(false); }}>Information</div>
+                        <div onClick={() => { navigate("/ProfilePage"); setShow(false); }}>Information</div>
                         <div onClick={() => {
                             localStorage.removeItem("token"); // Xóa token khi thoát
                             navigate("/Login_Register");

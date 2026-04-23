@@ -98,4 +98,3 @@ CREATE INDEX idx_accounts_user ON accounts(user_id);
 -- INSERT SAMPLE PRODUCTS
 INSERT INTO products (symbol, name, category, current_price, is_active) VALUES
 ('BTC-USD', 'Bitcoin', 'crypto', 45000.00000000, TRUE),
-

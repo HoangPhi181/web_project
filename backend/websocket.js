@@ -1,13 +1,29 @@
 // backend/websocket.js
-// WebSocket server for real-time price updates
-
 const WebSocket = require('ws');
-const db = require('./db');
+const db = require('./db'); // Đảm bảo đường dẫn tới file db của bạn đúng
 
 let wss = null;
 const clients = new Set();
 
-// Broadcast price updates to all connected clients
+// Khởi tạo Server WebSocket
+function startWebSocketServer(server) {
+  wss = new WebSocket.Server({ server });
+
+  wss.on('connection', (ws) => {
+    console.log('🔌 [WS] Client mới đã kết nối');
+    clients.add(ws);
+
+    // Gửi tin nhắn chào mừng
+    ws.send(JSON.stringify({ type: 'connected', message: 'Ready' }));
+
+    ws.on('close', () => {
+      clients.delete(ws);
+      console.log('🔌 [WS] Client đã ngắt kết nối');
+    });
+  });
+}
+
+// Hàm phát giá đơn lẻ (dùng cho bảng giá Dashboard)
 function broadcastPriceUpdate(symbol, price, timestamp) {
   const message = JSON.stringify({
     type: 'price_update',
@@ -15,101 +31,51 @@ function broadcastPriceUpdate(symbol, price, timestamp) {
     price: parseFloat(price),
     timestamp: timestamp
   });
-
   clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
-    }
+    if (client.readyState === WebSocket.OPEN) client.send(message);
   });
 }
 
-// Broadcast candle updates for charts
+// Hàm phát nến (dùng cho biểu đồ nhảy realtime)
 function broadcastCandleUpdate(symbol, candle) {
   const message = JSON.stringify({
     type: 'candle_update',
     symbol: symbol,
-    candle: candle
-  });
-
-  clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(message);
+    data: { 
+      timestamp: candle.timestamp,
+      open_price: parseFloat(candle.open_price),
+      high_price: parseFloat(candle.high_price),
+      low_price: parseFloat(candle.low_price),
+      close_price: parseFloat(candle.close_price)
     }
   });
-}
-
-// Start WebSocket server
-function startWebSocketServer(server) {
-  wss = new WebSocket.Server({ server });
-
-  wss.on('connection', (ws) => {
-    console.log('🔌 New WebSocket client connected');
-    clients.add(ws);
-
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'connected',
-      message: 'Connected to trading platform WebSocket',
-      timestamp: new Date().toISOString()
-    }));
-
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        console.log('📨 Received:', data);
-
-        // Handle client messages if needed
-        if (data.type === 'subscribe') {
-          ws.send(JSON.stringify({
-            type: 'subscribed',
-            symbols: data.symbols || ['BTC-USD', 'ETH-USD', 'XRP-USD']
-          }));
-        }
-      } catch (error) {
-        console.error('❌ WebSocket message error:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      console.log('🔌 WebSocket client disconnected');
-      clients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-      console.error('❌ WebSocket error:', error);
-      clients.delete(ws);
-    });
+  clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) client.send(message);
   });
-
-  console.log('🚀 WebSocket server started');
 }
 
-// Get current prices for broadcasting
-async function getCurrentPrices() {
-  try {
-    const [rows] = await db.promise().query(
-      'SELECT symbol, current_price FROM products WHERE is_active = TRUE'
-    );
-    return rows;
-  } catch (error) {
-    console.error('❌ Error getting current prices:', error);
-    return [];
-  }
-}
-
-// Periodic broadcast of current prices
+// HÀM BỊ THIẾU CỦA BẠN ĐÂY: Phát giá định kỳ từ Database
 function startPriceBroadcast() {
   setInterval(async () => {
-    const prices = await getCurrentPrices();
-    prices.forEach(price => {
-      broadcastPriceUpdate(price.symbol, price.current_price, new Date().toISOString());
-    });
-  }, 2000); // Broadcast every 2 seconds
+    try {
+      // Lấy giá mới nhất từ bảng products để gửi cho các widget giá
+      const [rows] = await db.promise().query(
+        'SELECT symbol, current_price FROM products WHERE is_active = TRUE'
+      );
+      
+      rows.forEach(row => {
+        broadcastPriceUpdate(row.symbol, row.current_price, new Date().toISOString());
+      });
+    } catch (error) {
+      console.error('❌ Lỗi định kỳ phát giá:', error.message);
+    }
+  }, 2000); // 2 giây phát một lần
 }
 
+// QUAN TRỌNG: Phải export đầy đủ 4 hàm này
 module.exports = {
   startWebSocketServer,
   broadcastPriceUpdate,
   broadcastCandleUpdate,
-  startPriceBroadcast
+  startPriceBroadcast // <-- Phải có dòng này thì server.js mới không bị lỗi
 };

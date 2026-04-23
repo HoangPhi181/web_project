@@ -75,7 +75,7 @@ function Register({onSwitch}) {
     const handleRegister = async (e) => {
         e.preventDefault();
         try {
-            const defaultUsername = 'User_${Math.floor(Math.random() * 1000)}';
+            const defaultUsername = `User_${Math.floor(Math.random() * 1000)}`;
             const res = await axios.post("http://localhost:5000/api/auth/register",{
                 username: defaultUsername,
                 email,

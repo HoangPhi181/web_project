@@ -5,26 +5,33 @@ import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
-// 1. Account Box (GIỮ NGUYÊN UI)
-function AccountBox({ acc, type }) {
+// 1. Account Box
+function AccountBox({ acc }) {
   const navigate = useNavigate();
 
   return (
     <div className="account-box">
-      <span className={type === "real" ? "real" : "demo"}><h3>{type}</h3></span>
+      <span className={acc.typeAccount === "real" ? "real" : "demo"}>
+        <h3>{acc.typeAccount}</h3>
+      </span>
+
       <h3>Standard</h3>
 
       <p>Number: #{acc.account_id}</p>
+
       <p>
         Balance:{" "}
         <strong>
           {acc.balance ? parseFloat(acc.balance).toFixed(2) : "0.00"} USD
         </strong>
       </p>
+
       <p>Used Margin: {acc.used_margin || 0} USD</p>
       <p>Leverage: 1:{acc.leverage}</p>
 
-      <button onClick={() => navigate("/MarketPage")}>Open</button>
+      <button onClick={() => navigate("/MarketPage")}>
+        Open
+      </button>
     </div>
   );
 }
@@ -33,9 +40,8 @@ function AccountBox({ acc, type }) {
 function Dashboard({ onOpenAccount, accounts, loading }) {
   const [tab, setTab] = useState("real");
 
-  // 👉 Fake logic tạm: account đầu là real, còn lại là demo
-  const filteredAccounts = accounts.filter((acc, index) =>
-    tab === "real" ? index === 0 : index !== 0
+  const filteredAccounts = accounts.filter(
+    (acc) => acc.typeAccount === tab
   );
 
   return (
@@ -68,10 +74,12 @@ function Dashboard({ onOpenAccount, accounts, loading }) {
 
       <div className="account-list">
         {loading ? (
-          <p style={{ color: "#fff", padding: "20px" }}>Loading data...</p>
+          <p style={{ color: "#fff", padding: "20px" }}>
+            Loading data...
+          </p>
         ) : filteredAccounts.length > 0 ? (
           filteredAccounts.map((acc) => (
-            <AccountBox key={acc.account_id} acc={acc} type={tab} />
+            <AccountBox key={acc.account_id} acc={acc} />
           ))
         ) : (
           <p style={{ color: "#aaa", padding: "20px" }}>
@@ -95,26 +103,36 @@ function Dashboard({ onOpenAccount, accounts, loading }) {
 function OpenAccount({ setPage, refreshAccounts }) {
   const [radio, setRadio] = useState("");
 
-  // Trong component OpenAccount (UserPage.jsx)
   const handleButton = async (e) => {
-      e.preventDefault();
-      if (!radio) { alert("Vui lòng chọn loại tài khoản"); return; }
+    e.preventDefault();
 
-      const token = localStorage.getItem("token");
-      try {
-          // Đổi sang .post và đúng đường dẫn mới
-          await axios.post(
-              "http://localhost:5000/api/auth/open-account",
-              { leverage: 100 }, // Bạn có thể thêm trường type: radio nếu cần
-              { headers: { Authorization: `Bearer ${token}` } }
-          );
+    if (!radio) {
+      alert("Vui lòng chọn loại tài khoản");
+      return;
+    }
 
-          alert(`Mở tài khoản ${radio} thành công!`);
-          if (refreshAccounts) await refreshAccounts(); // Load lại danh sách Dashboard
-          setPage("dashboard");
-      } catch (err) {
-          alert(err.response?.data?.message || "Lỗi server");
-      }
+    const token = localStorage.getItem("token");
+
+    try {
+      await axios.post(
+        "http://localhost:5000/api/auth/open-account",
+        {
+          leverage: 100,
+          typeAccount: radio, // 👈 gửi real/demo
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert(`Mở tài khoản ${radio} thành công!`);
+
+      if (refreshAccounts) await refreshAccounts();
+
+      setPage("dashboard");
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi server");
+    }
   };
 
   return (
@@ -122,7 +140,10 @@ function OpenAccount({ setPage, refreshAccounts }) {
       <h1>Open account</h1>
 
       <label className="account-card">
-        <div className="account-real" onClick={() => setRadio("real")}>
+        <div
+          className="account-real"
+          onClick={() => setRadio("real")}
+        >
           <input
             type="radio"
             name="account"
@@ -135,7 +156,10 @@ function OpenAccount({ setPage, refreshAccounts }) {
           <p>Min deposit: 10 USD</p>
         </div>
 
-        <div className="account-demo" onClick={() => setRadio("demo")}>
+        <div
+          className="account-demo"
+          onClick={() => setRadio("demo")}
+        >
           <input
             type="radio"
             name="account"
@@ -182,7 +206,6 @@ export default function UserPage() {
         }
       );
 
-      // ✅ hỗ trợ cả object và array
       if (Array.isArray(res.data)) {
         setAccounts(res.data);
       } else if (res.data) {

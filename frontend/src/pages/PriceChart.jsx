@@ -1,57 +1,43 @@
 import { createChart, ColorType } from 'lightweight-charts';
 import React, { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 
-const PriceChart = () => {
+const PriceChart = ({ symbol = 'BTC/USD', orders = [], onPriceChange }) => {
     const chartContainerRef = useRef();
     const chartRef = useRef();
     const seriesRef = useRef();
+    const linesRef = useRef([]); // 👈 lưu line để clear
 
-    const [activeTF, setActiveTF] = useState('D');
+    const lastCandleRef = useRef(null);
+    const [activeTF, setActiveTF] = useState('1m');
 
-    // 🔥 convert time -> timestamp (fix lỗi H1)
     const toTimestamp = (dateStr) => {
-        return Math.floor(new Date(dateStr).getTime() / 1000);
+        const ts = Math.floor(new Date(dateStr).getTime() / 1000);
+        return isNaN(ts) ? null : ts;
     };
 
-    // DATA D
-    const dataD = [
-        { time: '2017-04-01', open: 4235.1, high: 4260.5, low: 4230.8, close: 4250.5 },
-        { time: '2017-04-02', open: 4250.5, high: 4275.2, low: 4248.1, close: 4265.2 },
-        { time: '2017-04-03', open: 4265.2, high: 4288.8, low: 4260.4, close: 4280.8 },
-        { time: '2017-04-04', open: 4280.8, high: 4310.4, low: 4275.9, close: 4300.4 },
-        { time: '2017-04-05', open: 4300.4, high: 4335.1, low: 4276, close: 4295.9 },
-    ];
-
-    // DATA H1 (đã fix format)
-    const dataH1 = [
-        { time: toTimestamp('2017-04-05 08:00:00'), open: 4290.1, high: 4290.5, low: 4285.3, close: 4287.5 },
-        { time: toTimestamp('2017-04-05 09:00:00'), open: 4287.5, high: 4332.1, low: 4287.5, close: 4297.2 },
-        { time: toTimestamp('2017-04-05 10:00:00'), open: 4297.2, high: 4335.1, low: 4286.5, close: 4287 },
-        { time: toTimestamp('2017-04-05 11:00:00'), open: 4287, high: 4330, low: 4276, close: 4281 },
-        { time: toTimestamp('2017-04-05 12:00:00'), open: 4281, high: 4295, low: 4276.5, close: 4295.90 },
-    ];
-
-    // 🚀 INIT CHART
+    // =========================
+    // 1. INIT CHART
+    // =========================
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
         const chart = createChart(chartContainerRef.current, {
             layout: {
-                background: { type: ColorType.Solid, color: '#0b161e' },
+                background: { type: ColorType.Solid, color: '#131722' },
                 textColor: '#d1d4dc',
             },
-            width: chartContainerRef.current.clientWidth || 800,
-            height: chartContainerRef.current.clientHeight || 500,
-
-            // 🔥 grid rõ hơn
             grid: {
-                vertLines: { color: 'rgba(255,255,255,0.08)' },
-                horzLines: { color: 'rgba(255,255,255,0.08)' },
+                vertLines: { color: '#2f2f2f' },
+                horzLines: { color: '#2f2f2f' },
             },
-
-            crosshair: {
-                mode: 1,
+            timeScale: {
+                timeVisible: true,
+                rightOffset: 20,
+                barSpacing: 10,
             },
+            width: chartContainerRef.current.clientWidth,
+            height: 600,
         });
 
         const series = chart.addCandlestickSeries({
@@ -65,76 +51,162 @@ const PriceChart = () => {
         chartRef.current = chart;
         seriesRef.current = series;
 
-        // default load D
-        series.setData(dataD);
-        chart.timeScale().fitContent();
-
-        // resize chuẩn
         const handleResize = () => {
             chart.applyOptions({
-                width: chartContainerRef.current.clientWidth,
-                height: chartContainerRef.current.clientHeight,
+                width: chartContainerRef.current.clientWidth
             });
         };
 
-        window.addEventListener('resize', handleResize);
-        setTimeout(handleResize, 100);
+        const resizeObserver = new ResizeObserver(handleResize);
+        resizeObserver.observe(chartContainerRef.current);
 
         return () => {
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             chart.remove();
         };
     }, []);
 
-    // 🔥 CHANGE TIMEFRAME
+    // =========================
+    // 2. FETCH HISTORY
+    // =========================
     useEffect(() => {
-        if (!seriesRef.current || !chartRef.current) return;
+        const fetchHistory = async () => {
+            if (!seriesRef.current) return;
 
-        let newData;
+            try {
+                const apiSymbol = symbol.replace('/', '-').toUpperCase();
 
-        switch (activeTF) {
-            case 'H1':
-                newData = dataH1;
-                break;
-            case 'D':
-            default:
-                newData = dataD;
-                break;
-        }
+                const res = await axios.get(
+                    `http://localhost:5000/api/market/candles/${apiSymbol}`,
+                    {
+                        params: { timeframe: activeTF, limit: 300 }
+                    }
+                );
 
-        seriesRef.current.setData(newData);
-        chartRef.current.timeScale().fitContent();
+                const data = res.data?.data || [];
 
-    }, [activeTF]);
+                const formatted = data
+                    .map(item => ({
+                        time: toTimestamp(item.timestamp),
+                        open: Number(item.open_price),
+                        high: Number(item.high_price),
+                        low: Number(item.low_price),
+                        close: Number(item.close_price),
+                    }))
+                    .filter(i => i.time)
+                    .sort((a, b) => a.time - b.time);
 
+                seriesRef.current.setData(formatted);
+
+                if (formatted.length > 0) {
+                    lastCandleRef.current = formatted[formatted.length - 1];
+                }
+
+                chartRef.current.timeScale().fitContent();
+
+            } catch (err) {
+                console.error("History error:", err.message);
+            }
+        };
+
+        fetchHistory();
+    }, [symbol, activeTF]);
+
+    // =========================
+    // 3. REALTIME
+    // =========================
+    useEffect(() => {
+        const socket = new WebSocket("ws://localhost:5000");
+        const apiSymbol = symbol.replace('/', '-').toUpperCase();
+
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.symbol !== apiSymbol) return;
+
+            const price = Number(msg.price || msg.data?.close_price);
+            if (onPriceChange) onPriceChange(price);
+            const ts = toTimestamp(msg.timestamp || msg.data?.timestamp);
+
+            const tfSec = parseInt(activeTF) * 60;
+            const rounded = Math.floor(ts / tfSec) * tfSec;
+
+            let candle;
+            const last = lastCandleRef.current;
+
+            if (last && last.time === rounded) {
+                candle = {
+                    ...last,
+                    close: price,
+                    high: Math.max(last.high, price),
+                    low: Math.min(last.low, price),
+                };
+            } else {
+                candle = {
+                    time: rounded,
+                    open: price,
+                    high: price,
+                    low: price,
+                    close: price,
+                };
+            }
+
+            lastCandleRef.current = candle;
+            seriesRef.current.update(candle);
+        };
+
+        return () => socket.close();
+    }, [symbol, activeTF]);
+
+    // =========================
+    // 4. DRAW ENTRY LINES ✅ FIX CHUẨN
+    // =========================
+    useEffect(() => {
+        if (!chartRef.current) return;
+
+        // ❌ XÓA LINE CŨ
+        linesRef.current.forEach(line => {
+            chartRef.current.removeSeries(line);
+        });
+        linesRef.current = [];
+
+        if (!orders || orders.length === 0) return;
+
+        orders.forEach(order => {
+            const line = chartRef.current.addLineSeries({
+                color: order.side === "BUY" ? "green" : "red",
+                lineWidth: 2,
+                lineStyle: 2, // dashed
+            });
+
+            line.setData([
+                {
+                    time: Math.floor(Date.now() / 1000),
+                    value: Number(order.open_price)
+                },
+                {
+                    time: Math.floor(Date.now() / 1000) + 1000,
+                    value: Number(order.open_price)
+                }
+            ]);
+
+            linesRef.current.push(line);
+        });
+
+    }, [orders]);
+
+    // =========================
+    // UI
+    // =========================
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '500px' }}>
-            
-            {/* 🔥 TIMEFRAME BUTTON */}
-            <div style={{
-                position: 'absolute',
-                top: '10px',
-                left: '10px',
-                zIndex: 10,
-                display: 'flex',
-                gap: '5px',
-                background: 'rgba(27, 42, 50, 0.8)',
-                padding: '5px',
-                borderRadius: '4px'
-            }}>
-                {['M1', 'M5', 'M15', 'H1', 'H4', 'D', 'W', 'M'].map(tf => (
+        <div style={{ width: '100%', background: '#131722' }}>
+            <div style={{ padding: 10, display: 'flex', gap: 10 }}>
+                {['1m','5m','15m','1h'].map(tf => (
                     <button
                         key={tf}
                         onClick={() => setActiveTF(tf)}
                         style={{
-                            background: activeTF === tf ? '#f5c400' : 'transparent',
-                            color: activeTF === tf ? '#000' : '#fff',
-                            border: 'none',
-                            padding: '3px 10px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            borderRadius: '3px'
+                            background: activeTF === tf ? '#2962ff' : '#2a2e39',
+                            color: 'white'
                         }}
                     >
                         {tf}
@@ -142,11 +214,7 @@ const PriceChart = () => {
                 ))}
             </div>
 
-            {/* CHART */}
-            <div
-                ref={chartContainerRef}
-                style={{ width: '100%', height: '100%' }}
-            />
+            <div ref={chartContainerRef} style={{ height: 600 }} />
         </div>
     );
 };
