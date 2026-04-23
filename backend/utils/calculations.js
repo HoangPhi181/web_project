@@ -1,19 +1,8 @@
-// backend/utils/calculations.js
-// Centralized calculation logic
 
-/**
- * Calculate required margin for an order
- * Formula: (current_price × volume × 100) / leverage
- */
 function calculateRequiredMargin(currentPrice, volume, leverage = 100) {
-  return (parseFloat(currentPrice) * parseFloat(volume) * 100) / leverage;
+  return (parseFloat(currentPrice) * parseFloat(volume) ) / leverage;
 }
 
-/**
- * Calculate P&L (Profit/Loss) for an open position
- * BUY: P&L = (current_price - open_price) × volume
- * SELL: P&L = (open_price - current_price) × volume
- */
 function calculatePnL(openPrice, currentPrice, volume, side) {
   const open = parseFloat(openPrice);
   const current = parseFloat(currentPrice);
