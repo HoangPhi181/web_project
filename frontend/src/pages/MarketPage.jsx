@@ -1,81 +1,353 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/MarketPage.css";
 import PriceChart from "./PriceChart";
+import axios from "axios";
 
 export default function MarketPage() {
-  const navigate = useNavigate();
-  return (
-    <div className="marketPage-container">
-        <header>
-            <div className="logo">Nova</div>
-            <div className="symbol">BTC/USD</div>
-            <div className="balance">0.00 USD</div>
-            <button className="deposit" onClick = {()=> navigate("/PaymentPage")}>Deposit</button>
-        </header>
+    const navigate = useNavigate();
 
-        <main className="market-container">
+    const products = [
+        { id: 1, symbol: "BTC/USD" },
+        { id: 2, symbol: "XAU/USD" },
+        { id: 3, symbol: "EUR/USD" }
+    ];
 
-            <nav className="sidebar">
-            <ul>
-                <li className ="active">BTC/USD</li>
-                <li>XAU/USD</li>
-                <li>EUR/USD</li>
-            </ul>
-            </nav>
+    // =========================
+    // STATE
+    // =========================
+    const [orders, setOrders] = useState([]);
+    const [balance, setBalance] = useState(0);
 
-            <section className="chart">
-            <div className="chart-placeholder">
-                <PriceChart/>
-            </div>
-            </section>
+    const [pageLoading, setPageLoading] = useState(true);
+    const [orderLoading, setOrderLoading] = useState(false);
 
-            <aside className="trade">
-                <h3>XAU/USD</h3>
+    const [currentPrice, setCurrentPrice] = useState(0);
 
-                <div className="price">
-                    <button className="sell">SELL <br/> 0.00</button>
-                    <button className="buy">BUY <br/> 0.16</button>
+    const [tradeForm, setTradeForm] = useState({
+        "product_id": 1,
+        "side": "BUY",
+        "volume": 0.1,
+        "stop_loss": null,
+        "take_profit": null
+
+    });
+
+    const selectedProduct = useMemo(() => {
+        return products.find(p => p.id === tradeForm.product_id);
+    }, [tradeForm.product_id]);
+
+// -----------------------------------------------------------------------------------------------
+    const fetchData = async (firstLoad = false) => {
+        try {
+            if (firstLoad) setPageLoading(true);
+
+            const token = localStorage.getItem("token");
+            /*--------------------dữ liệu các lệnh đang ở trạng thái hoạt động--------*/
+            const res = await axios.get("http://localhost:5000/api/orders/opening", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setOrders(res.data.data || []);
+            /*------------------------------gọi API tới /balance set vào setBalance--------------------------------------*/
+            const resB = await axios.get("http://localhost:5000/api/orders/balance", {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+            const accounts = resB.data.data || [];
+
+            if (accounts.length > 0) {
+                    setBalance(accounts[0].equity);
+                }
+            }
+        catch (error) {
+            console.error("Lỗi lấy dữ liệu:", error);
+
+            if (error.response?.status === 401) {
+                navigate("/Login-Register");
+            }
+        } finally {
+            if (firstLoad) setPageLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData(true);
+
+        const interval = setInterval(() => {
+            fetchData(false);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, [navigate]);
+/*------------------------------------------------------------------------------------------------ */
+    // =========================
+    // HANDLE INPUT
+    // =========================
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setTradeForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // =========================
+    // PLACE ORDER
+    // =========================
+    const handlePlaceOrder = async (side) => {
+        try {
+            setOrderLoading(true);
+
+            const token = localStorage.getItem("token");
+
+            const payload = {
+                product_id: Number(tradeForm.product_id),
+                side: side,
+                volume: Number(tradeForm.volume),
+                stop_loss:
+                    tradeForm.stop_loss === ""
+                        ? null
+                        : Number(tradeForm.stop_loss),
+                take_profit:
+                    tradeForm.take_profit === ""
+                        ? null
+                        : Number(tradeForm.take_profit)
+            };
+
+            const res = await axios.post(
+                "http://localhost:5000/api/orders/create",
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            alert(`Đặt lệnh ${side} thành công!`);
+
+            await fetchData(false);
+        } catch (error) {
+            console.log(error.response?.data);
+            const msg =
+                error.response?.data?.message ||
+                JSON.stringify(error.response?.data?.errors) ||
+                "Có lỗi xảy ra";
+
+            alert("Lỗi đặt lệnh: " + msg);
+
+        } finally {
+            setOrderLoading(false);
+        }
+    };
+
+    // =========================
+    // RENDER
+    // =========================
+    return (
+        <div className="marketPage-container">
+            <header>
+                <div className="logo">Nova</div>
+                <div className="symbol">{selectedProduct?.symbol}</div>
+                <div className="balance">
+                    {Number(balance).toLocaleString()} USD
                 </div>
+                <button
+                    className="deposit"
+                    onClick={() => navigate("/PaymentPage")}
+                >
+                    Deposit
+                </button>
+            </header>
 
-                <label>Volume</label><input type="number" defaultValue="0.01" />
-                <label>Take Profit</label><input type="number" defaultValue="0.00" />
-                <label>Stop Loss</label><input type="number" defaultValue="0.00" />
+            <main className="market-container">
+                <nav className="sidebar">
+                    <ul>
+                        {products.map((product) => (
+                            <li
+                                key={product.id}
+                                className={
+                                    tradeForm.product_id === product.id
+                                        ? "active"
+                                        : ""
+                                }
+                                onClick={() =>
+                                    setTradeForm(prev => ({
+                                        ...prev,
+                                        product_id: product.id
+                                    }))
+                                }
+                            >
+                                {product.symbol}
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
 
+                <section className="chart">
+                    <div className="chart-placeholder">
+                        {/* <PriceChart symbol={selectedProduct?.symbol} /> */}
+                        <PriceChart 
+                            symbol={selectedProduct?.symbol}
+                            orders={orders}
+                            onPriceChange={setCurrentPrice}
+                        />
+                    </div>
+                </section>
 
-            </aside>
+                <aside className="trade">
+                    <h3>{selectedProduct?.symbol}</h3>
 
-        </main>
+                    <div className="price">
+                        <button
+                            className="sell"
+                            onClick={() => handlePlaceOrder("SELL")}
+                            disabled={orderLoading}
+                        >
+                            BÁN <br />
+                            <span
+                                style={{
+                                    fontSize: "13px",
+                                    fontWeight: 500,
+                                    color: "#ededed",
+                                    marginTop: "2px",
+                                    display: "block"
+                                }}
+                            >
+                                {Number(currentPrice + 0.5).toFixed(2)}
+                            </span>
+                        </button>
 
-        <section className="orders">
-            <h3>Opening</h3>
-            <table>
-            <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Type</th>
-                <th>Lot</th>
-                <th>Open price</th>
-                <th>Current price</th>
-                <th>T/P</th>
-                <th>S/L</th>
-                <th>P/L,USD</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>XAU/USD</td>
-                <td className ="type">SELL</td>
-                <td>0.01</td>
-                <td>5,596.703</td>
-                <td>4,450.920</td>
-                <td>4,440</td>
-                <td>5,501.500</td>
-                <td className="profit">+1,145.28</td>
-            </tr>
-            </tbody>
-            </table>
-        </section>
-    </div>
-  )
+                        <button
+                            className="buy"
+                            onClick={() => handlePlaceOrder("BUY")}
+                            disabled={orderLoading}
+                        >
+                            MUA <br />
+                            <span
+                                style={{
+                                    fontSize: "13px",
+                                    fontWeight: 500,
+                                    color: "#ededed",
+                                    marginTop: "2px",
+                                    display: "block"
+                                }}
+                            >
+                                {Number(currentPrice - 0.5).toFixed(2)}
+                            </span>
+                        </button>
+                    </div>
+
+                    <div className="trade-inputs">
+                        <label>Volume</label>
+                        <input
+                            type="number"
+                            name="volume"
+                            step="0.01"
+                            value={tradeForm.volume}
+                            onChange={handleInputChange}
+                        />
+
+                        <label>Take Profit</label>
+                        <input
+                            type="number"
+                            name="take_profit"
+                            value={tradeForm.take_profit || ""}
+                            onChange={handleInputChange}
+                            placeholder="take profit"
+                        />
+
+                        <label>Stop Loss</label>
+                        <input
+                            type="number"
+                            name="stop_loss"
+                            value={tradeForm.stop_loss || ""}
+                            onChange={handleInputChange}
+                            placeholder="stop loss"
+                        />
+                    </div>
+                </aside>
+            </main>
+
+            <section className="orders">
+                <h3>Các lệnh đang mở</h3>
+
+                {pageLoading ? (
+                    <p>Đang tải dữ liệu...</p>
+                ) : (
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Loại</th>
+                                <th>Lot</th>
+                                <th>Giá mở</th>
+                                <th>TP</th>
+                                <th>SL</th>
+                                <th>Giờ mở</th>
+                                <th>Lãi/Lỗ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orders.map((item) => (
+                                <tr key={item.order_id || item.id}>
+                                    <td>{item.symbol}</td>
+
+                                    <td
+                                        className={
+                                            item.side === "BUY"
+                                                ? "text-buy"
+                                                : "text-sell"
+                                        }
+                                    >
+                                        {item.side}
+                                    </td>
+
+                                    <td>{Number(item.volume).toFixed(2)}</td>
+
+                                    <td>{Number(item.open_price).toFixed(2)}</td>
+
+                                    <td>
+                                        {item.take_profit !== null &&
+                                        item.take_profit !== undefined
+                                            ? Number(item.take_profit).toFixed(2)
+                                            : "-"}
+                                    </td>
+
+                                    <td>
+                                        {item.stop_loss !== null &&
+                                        item.stop_loss !== undefined
+                                            ? Number(item.stop_loss).toFixed(2)
+                                            : "-"}
+                                    </td>
+
+                                    <td>
+                                        {new Date(
+                                            item.created_at
+                                        ).toLocaleTimeString()}
+                                    </td>
+
+                                    <td
+                                        className={
+                                            Number(item.pnl || 0) >= 0
+                                                ? "profit"
+                                                : "loss"
+                                        }
+                                    >
+                                        {Number(item.pnl || 0) >= 0
+                                            ? `+${Number(item.pnl).toFixed(2)}`
+                                            : Number(item.pnl).toFixed(2)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </section>
+        </div>
+    );
 }
