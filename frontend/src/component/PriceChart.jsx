@@ -11,6 +11,8 @@ const PriceChart = ({ symbol = 'BTC/USD', orders = [], onPriceChange }) => {
     const lastCandleRef = useRef(null);
     const [activeTF, setActiveTF] = useState('1m');
 
+    const [activeOrderId, setActiveOrderId] = useState(null);
+
     const toTimestamp = (dateStr) => {
         const ts = Math.floor(new Date(dateStr).getTime() / 1000);
         return isNaN(ts) ? null : ts;
@@ -156,43 +158,112 @@ const PriceChart = ({ symbol = 'BTC/USD', orders = [], onPriceChange }) => {
 
         return () => socket.close();
     }, [symbol, activeTF]);
-
-    // =========================
-    // 4. DRAW ENTRY LINES ✅ FIX CHUẨN
-    // =========================
+    /*-------------------------------------Draw line--------------------------------- */
     useEffect(() => {
-        if (!chartRef.current) return;
+        if (!chartRef.current || !seriesRef.current) return;
 
-        // ❌ XÓA LINE CŨ
+        const chart = chartRef.current;
+
+        const handleClick = (param) => {
+            if (!param || !param.point) return;
+
+            const y = param.point.y;
+
+            let closest = null;
+            let minDiff = Infinity;
+
+            orders.forEach(order => {
+                const yOrder = seriesRef.current.priceToCoordinate(
+                    Number(order.open_price)
+                );
+
+                if (yOrder == null) return;
+
+                const diff = Math.abs(y - yOrder);
+
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = order;
+                }
+            });
+
+            const THRESHOLD = 12; // pixel (10–20 là đẹp)
+
+            if (closest && minDiff < THRESHOLD) {
+                setActiveOrderId(closest.id || closest.open_price);
+            } else {
+                setActiveOrderId(null);
+            }
+        };
+
+        chart.subscribeClick(handleClick);
+
+        return () => chart.unsubscribeClick(handleClick);
+
+    }, [orders]);
+
+    useEffect(() => {
+        if (!seriesRef.current) return;
+
+        // ❌ clear line cũ
         linesRef.current.forEach(line => {
-            chartRef.current.removeSeries(line);
+            seriesRef.current.removePriceLine(line);
         });
         linesRef.current = [];
 
         if (!orders || orders.length === 0) return;
 
         orders.forEach(order => {
-            const line = chartRef.current.addLineSeries({
-                color: order.side === "BUY" ? "green" : "red",
-                lineWidth: 2,
-                lineStyle: 2, // dashed
+            const entryPrice = Number(order.open_price);
+            const key = order.id || order.open_price;
+            const isActive = key === activeOrderId;
+
+            // ===== ENTRY =====
+            const entryLine = seriesRef.current.createPriceLine({
+                price: entryPrice,
+                color: "#2962ff",
+                lineWidth: isActive ? 4 : 2,
+                lineStyle: 0,
+                axisLabelVisible: true,
+                title: `${order.side} ${Number(order.volume).toFixed(2) || 0.01}`,
             });
 
-            line.setData([
-                {
-                    time: Math.floor(Date.now() / 1000),
-                    value: Number(order.open_price)
-                },
-                {
-                    time: Math.floor(Date.now() / 1000) + 1000,
-                    value: Number(order.open_price)
-                }
-            ]);
+            linesRef.current.push(entryLine);
 
-            linesRef.current.push(line);
+            // ===== TP =====
+            if (order.take_profit) {
+                const tp = Number(order.take_profit);
+
+                const tpLine = seriesRef.current.createPriceLine({
+                    price: tp,
+                    color: "#00c853",
+                    lineWidth: isActive ? 3 : 1,
+                    lineStyle: 2,
+                    axisLabelVisible: isActive, // chỉ hiện khi active
+                    title: `${((tp - entryPrice)*order.volume).toFixed(2)} USD`,
+                });
+
+                linesRef.current.push(tpLine);
+            }
+
+            // ===== SL =====
+            if (order.stop_loss) {
+                const sl = Number(order.stop_loss);
+
+                const slLine = seriesRef.current.createPriceLine({
+                    price: sl,
+                    color: "#ff9800",
+                    lineWidth: isActive ? 3 : 1,
+                    lineStyle: 2,
+                    axisLabelVisible: isActive, // chỉ hiện khi active
+                    title: `${((sl - entryPrice)*order.volume).toFixed(2)} USD`,
+                });
+
+                linesRef.current.push(slLine);
+            }
         });
 
-    }, [orders]);
+    }, [orders, activeOrderId]);
 
     // =========================
     // UI

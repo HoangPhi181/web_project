@@ -3,22 +3,21 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 
 
-import HomePage from "./pages/HomePage";
-import Login_Register from "./pages/Login_Register";
-import UserPage from "./pages/UserPage";
-import MarketPage from "./pages/MarketPage";
-import HistoryPage from "./pages/HistoryPage";
-import PaymentPage from "./pages/PaymentPage";
-import PerformancePage from "./pages/PerformancePage";
-import QRPage from "./pages/QRPage";
-import WithdrawalPage from "./pages/WithdrawalPage";
-import PriceChart from "./pages/PriceChart";
-import ProfilePage from "./pages/ProfilePage";
+import HomePage from "./features/home/HomePage";
+import Login_Register from "./features/auth/Login_Register";
+import UserPage from "./features/account/UserPage";
+import MarketPage from "./features/trading/MarketPage";
+import HistoryPage from "./features/account/HistoryPage";
+import PaymentPage from "./features/payment/PaymentPage";
+import PerformancePage from "./features/account/PerformancePage";
+import WithdrawalPage from "./features/payment/WithdrawalPage";
+import ProfilePage from "./features/account/ProfilePage";
+import QRPage from "./features/payment/QRPage";
 
-import Dashboard from "./pages/admin/Dashboard";
-import ManageUsers from "./pages/admin/ManageUsers";
-import VerifyRequests from "./pages/admin/VerifyRequests";
-import CreateCode from "./pages/admin/CreateCode";
+import Dashboard from "./features/admin/Dashboard";
+import ManageUsers from "./features/admin/ManageUsers";
+import VerifyRequests from "./features/admin/VerifyRequests";
+import CreateCode from "./features/admin/CreateCode";
 
 
 function App() {
@@ -33,10 +32,9 @@ function App() {
         <Route path="/HistoryPage" element={<HistoryPage />} />
         <Route path="/PaymentPage" element={<PaymentPage />} />
         <Route path="/PerformancePage" element={<PerformancePage />} />
-        <Route path="/QRPage" element={<QRPage />} />
         <Route path="/ProfilePage" element={<ProfilePage />} />
         <Route path="/WithdrawalPage" element={<WithdrawalPage />} />
-        <Route path="/PriceChart" element={<PriceChart />} />
+        <Route path="/QRPage" element={<QRPage />} />
 
         <Route path="/admin" element={<Dashboard />} />
         <Route path="/admin/users" element={<ManageUsers />} />

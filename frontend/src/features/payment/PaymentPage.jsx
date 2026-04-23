@@ -1,8 +1,8 @@
 import {React} from 'react'
 import { useNavigate } from "react-router-dom";
-import "../styles/PaymentPage.css"
-import Sidebar from './Sidebar';
-import Header from './Header';
+import "../../styles/PaymentPage.css"
+import Sidebar from "../../component/Sidebar";
+import Header from "../../component/Header";
 
 function Menu() {
   return (

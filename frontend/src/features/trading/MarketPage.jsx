@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/MarketPage.css";
-import PriceChart from "./PriceChart";
+import "../../styles/MarketPage.css";
+import PriceChart from "../../component/PriceChart";
 import axios from "axios";
 
 export default function MarketPage() {
@@ -55,7 +55,7 @@ export default function MarketPage() {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
-                });
+            });
 
             const accounts = resB.data.data || [];
 
@@ -65,10 +65,6 @@ export default function MarketPage() {
             }
         catch (error) {
             console.error("Lỗi lấy dữ liệu:", error);
-
-            if (error.response?.status === 401) {
-                navigate("/Login-Register");
-            }
         } finally {
             if (firstLoad) setPageLoading(false);
         }
@@ -82,7 +78,74 @@ export default function MarketPage() {
         }, 10000);
 
         return () => clearInterval(interval);
-    }, [navigate]);
+    }, []);
+    
+/*-------------------------------close orders------------------------------------------------------ */
+    const [closingId, setClosingId] = useState(null);
+
+    // ================= FETCH =================
+    const fetchOrders = async (firstLoad = false) => {
+        try {
+            if (firstLoad) setPageLoading(true);
+
+            const token = localStorage.getItem("token");
+
+            const res = await axios.get(
+                "http://localhost:5000/api/orders/opening",
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            setOrders(res.data.data || []);
+        } catch (error) {
+            console.error("Lỗi lấy dữ liệu:", error);
+        } finally {
+            if (firstLoad) setPageLoading(false);
+        }
+    };
+
+    // ================= CLOSE =================
+    const handleClose = async (orderId, price) => {
+        try {
+            if (closingId === orderId) return;
+
+            setClosingId(orderId);
+
+            const token = localStorage.getItem("token");
+
+            await axios.post(
+                `http://localhost:5000/api/orders/${orderId}/close`,
+                {
+                    close_price: price
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            fetchOrders();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setClosingId(null);
+        }
+    };
+
+    // ================= AUTO REFRESH =================
+    useEffect(() => {
+        fetchOrders(true);
+
+        const interval = setInterval(() => {
+            fetchOrders(false);
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, []);
 /*------------------------------------------------------------------------------------------------ */
     // =========================
     // HANDLE INPUT
@@ -145,6 +208,14 @@ export default function MarketPage() {
         }
     };
 
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         axios.post("http://localhost:5000/api/orders/1/autoClose");
+    //         current_price: currentPrice
+    //     }, 3000);
+
+    //     return () => clearInterval(interval); // cleanup
+    // }, [currentPrice]);
     // =========================
     // RENDER
     // =========================
@@ -290,6 +361,7 @@ export default function MarketPage() {
                                 <th>SL</th>
                                 <th>Giờ mở</th>
                                 <th>Lãi/Lỗ</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -341,6 +413,13 @@ export default function MarketPage() {
                                         {Number(item.pnl || 0) >= 0
                                             ? `+${Number(item.pnl).toFixed(2)}`
                                             : Number(item.pnl).toFixed(2)}
+                                    </td>
+
+                                    <td>
+                                        <button 
+                                            onClick={() => handleClose(item.order_id, currentPrice)}
+                                            disabled={closingId === item.order_id}
+                                        >{closingId === item.order_id ? "..." : "✕"}</button>
                                     </td>
                                 </tr>
                             ))}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
+import Sidebar from "../../component/Sidebar";
+import Header from "../../component/Header";
 
 // 1. Component Bảng - Nhận dữ liệu (data) từ props
 function HistoryTable({ data }) {

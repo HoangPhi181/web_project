@@ -1,7 +1,6 @@
 import React from "react";
-import Sidebar from "./Sidebar";
-import Header from "./Header";
-
+import Sidebar from "../../component/Sidebar";
+import Header from "../../component/Header";
 function Menu() {
   return (
     <main className="main-container">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Sidebar from './Sidebar';
-import Header from './Header';
+import Sidebar from "../../component/Sidebar";
+import Header from "../../component/Header";
 
 export default function ProfilePage() {
     const navigate = useNavigate();

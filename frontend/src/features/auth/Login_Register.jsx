@@ -1,7 +1,9 @@
 import React, {useState} from 'react'
-import "../styles/Login_Register.css";
+import "../../styles/Login_Register.css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { register } from '../../api/authApi';
+import { login } from '../../api/authApi';
 
 function Login({onSwitch}) {
     const navigate = useNavigate(); 
@@ -13,7 +15,7 @@ function Login({onSwitch}) {
         e.preventDefault(); // Ngăn trang web load lại
         try {
             // 2. Gọi API login từ backend
-            const res = await axios.post("http://localhost:5000/api/auth/login", {
+            const res = await login ({
                 email,
                 password
             });
@@ -76,7 +78,7 @@ function Register({onSwitch}) {
         e.preventDefault();
         try {
             const defaultUsername = `User_${Math.floor(Math.random() * 1000)}`;
-            const res = await axios.post("http://localhost:5000/api/auth/register",{
+            await register({
                 username: defaultUsername,
                 email,
                 password

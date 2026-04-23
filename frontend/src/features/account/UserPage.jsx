@@ -1,13 +1,55 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "../styles/UserPage.css";
 import { useNavigate } from "react-router-dom";
-import Header from "./Header";
-import Sidebar from "./Sidebar";
+import "../../styles/UserPage.css";
+import Sidebar from "../../component/Sidebar";
+import Header from "../../component/Header";
 
-// 1. Account Box
 function AccountBox({ acc }) {
   const navigate = useNavigate();
+  const [balance, setBalance] = useState(0);
+  const [pageLoading, setPageLoading] = useState(false);
+
+  const fetchData = async (firstLoad = false) => {
+    try {
+      if (firstLoad) setPageLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      const resB = await axios.get(
+        "http://localhost:5000/api/orders/balance",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const accounts = resB.data.data || [];
+      /*-------dùng /api/orders/balance theo account_id---------------*/
+      const currentAccount = accounts.find(
+        (item) => item.account_id === acc.account_id
+      );
+
+      if (currentAccount) {
+        setBalance(currentAccount.equity);
+      }
+    } catch (err) {
+      console.error("Fetch balance error:", err);
+    } finally {
+      if (firstLoad) setPageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData(true);
+    /*sau 10000ms = 10s là cập nhật fetchData lại để hiện balance realtime*/
+    const interval = setInterval(() => {
+      fetchData(false);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="account-box">
@@ -22,7 +64,7 @@ function AccountBox({ acc }) {
       <p>
         Balance:{" "}
         <strong>
-          {acc.balance ? parseFloat(acc.balance).toFixed(2) : "0.00"} USD
+          {parseFloat(balance || 0).toFixed(2)} USD
         </strong>
       </p>
 

@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import "../styles/Sidebar.css"
+import "../../styles/Sidebar.css"
 import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Sidebar() {

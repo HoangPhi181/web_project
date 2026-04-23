@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import "../styles/HomePage.css";
+import "../../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import { FaShieldAlt, FaCheckCircle, FaHeadset, FaCreditCard } from "react-icons/fa";
 
