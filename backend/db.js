@@ -9,13 +9,25 @@ const db = mysql.createConnection({
 });
 
 db.connect((err) => {
-
   if (err) {
     console.log("Database error:", err);
   } else {
     console.log("MySQL Connected");
   }
-
 });
+
+/**
+ * Promise-based query helper for async/await usage.
+ */
+db.queryAsync = function (sql, params = []) {
+  return new Promise((resolve, reject) => {
+    this.query(sql, params, (err, results) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve(results);
+    });
+  });
+};
 
 module.exports = db;
