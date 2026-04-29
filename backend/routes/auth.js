@@ -1,103 +1,83 @@
+// backend/routes/auth.js
+// Thin Auth Controller - Uses CentralMediator for business logic
+
 const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const db = require("../db");
-const { validateRegister } = require("../utils/validators");
+const CentralMediator = require("../mediators/CentralMediator");
+const { validateRegister, validateLogin } = require("../utils/validators");
+const { ValidationError, AppError } = require("../utils/errors");
 
 const router = express.Router();
 
+// ============================================================
+// API: POST /api/auth/register - Register new user
+// ============================================================
 router.post("/register", async (req, res) => {
-
   try {
-    // Validate input
+    // 1. VALIDATE INPUT
     const { username, email, password } = validateRegister(req.body);
     const { country } = req.body; // Optional country
 
-    // Check for existing user
-    const checkUserSql = "SELECT user_id FROM users WHERE username = ? OR email = ?";
-    db.query(checkUserSql, [username, email], async (checkErr, checkResults) => {
-      if (checkErr) {
-        return res.status(500).json({ message: "Database error" });
-      }
+    // 2. CALL MEDIATOR
+    const result = await CentralMediator.registerUser(username, email, password, country || null);
 
-      if (checkResults.length > 0) {
-        return res.status(409).json({ message: "Username or email already exists" });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const sql = "INSERT INTO users (username,email,country,password_hash) VALUES (?,?,?,?)";
-
-      db.query(sql, [username, email, country || null, hashedPassword], (err, result) => {
-
-        if (err) {
-          return res.status(500).json({ message: "User already exists" });
-        }
-
-        // Auto-create account cho user mới
-        const userId = result.insertId;
-        const createAccountSql = "INSERT INTO accounts (user_id, balance, used_margin, leverage) VALUES (?, ?, ?, ?)";
-        
-        db.query(createAccountSql, [userId, 10000, 0, 100], (accountErr) => {
-          if (accountErr) {
-            console.log("Error creating account:", accountErr);
-            // Vẫn return success vì user đã được tạo
-          }
-          res.json({
-            message: "Register success",
-            userId: userId
-          });
-        });
-
-      });
-    });
+    // 3. RETURN RESPONSE
+    res.json(result);
 
   } catch (error) {
-    if (error instanceof require("../utils/errors").ValidationError) {
-      return res.status(400).json({ message: error.message, errors: error.errors });
+    // Error handling
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        message: error.message,
+        errors: error.errors || {}
+      });
     }
+
+    if (error.message && error.message.includes('already exists')) {
+      return res.status(409).json({ message: "Username or email already exists" });
+    }
+
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    console.error("Register error:", error);
     res.status(500).json({ message: "Server error" });
   }
-
 });
 
+// ============================================================
+// API: POST /api/auth/login - Login user
+// ============================================================
 router.post("/login", async (req, res) => {
-
-  const { email, password } = req.body;
-
   try {
-    const sql = "SELECT * FROM users WHERE email = ?";
+    // 1. VALIDATE INPUT
+    const { email, password } = validateLogin(req.body);
 
-    db.query(sql, [email], async (err, results) => {
+    // 2. CALL MEDIATOR
+    const result = await CentralMediator.loginUser(email, password);
 
-      if (err) {
-        return res.status(500).json({ message: "Database error" });
-      }
+    // 3. RETURN RESPONSE
+    res.json(result);
 
-      if (results.length === 0) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      const user = results[0];
-
-      const validPassword = await bcrypt.compare(password, user.password_hash);
-
-      if (!validPassword) {
-        return res.status(401).json({ message: "Wrong password" });
-      }
-
-      const token = jwt.sign(
-        { id: user.user_id },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
-      res.json({
-        message: "Login success",
-        token: token
+  } catch (error) {
+    // Error handling
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        message: error.message,
+        errors: error.errors || {}
       });
+    }
 
-    });
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+module.exports = router;
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }

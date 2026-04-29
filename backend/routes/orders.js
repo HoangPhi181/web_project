@@ -1,11 +1,11 @@
 // backend/routes/orders.js
-// Complete implementation of 4 Orders APIs
+// Thin Orders Controller - Uses CentralMediator for business logic
+// Routes: Create Order, Get Open Orders, Close Order, Order History
 
 const express = require("express");
-const db = require("../db");
 const verifyToken = require("../middleware/authMiddleware");
+const CentralMediator = require("../mediators/CentralMediator");
 const {
-  calculateRequiredMargin,
   calculatePnL,
   calculatePnLPercent,
   validatePriceDeviation,
@@ -18,136 +18,259 @@ const {
 } = require("../utils/validators");
 const {
   ValidationError,
-  InsufficientBalanceError,
   NotFoundError,
-  UnauthorizedError,
-  ConflictError
+  AppError
 } = require("../utils/errors");
+const db = require("../db");
 
 const router = express.Router();
 
 // ============================================================
-// API 1: POST /api/orders/create - Tạo lệnh BUY/SELL
+// API 1: POST /api/orders/create - Create BUY/SELL order
 // ============================================================
-router.post("/create", verifyToken, (req, res, next) => {
+router.post("/create", verifyToken, async (req, res) => {
   try {
     // 1. VALIDATE INPUT
     const validated = validateOrderCreate(req.body);
     const userId = req.userId;
 
-    // 2. GET USER ACCOUNT & PRODUCT INFO
-    const accountQuery = `
-      SELECT a.account_id, a.balance, a.used_margin, a.leverage, a.user_id
-      FROM accounts a
-      WHERE a.user_id = ?
+    // 2. CALL MEDIATOR
+    const result = await CentralMediator.createOrder(
+      userId,
+      validated.product_id,
+      validated.side,
+      validated.volume,
+      validated.stop_loss,
+      validated.take_profit
+    );
+
+    // 3. RETURN RESPONSE
+    res.status(201).json(result);
+
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        message: error.message,
+        errors: error.errors || {}
+      });
+    }
+
+    // Check for insufficient balance (402 status)
+    if (error.statusCode === 402) {
+      return res.status(402).json({
+        message: error.message,
+        required_margin: error.required_margin,
+        available_balance: error.available_balance
+      });
+    }
+
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    console.error("Create order error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================================================
+// API 2: GET /api/orders - Get open orders for current user
+// ============================================================
+router.get("/", verifyToken, (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const query = `
+      SELECT
+        o.order_id, o.account_id, o.product_id,
+        p.symbol, p.name, p.current_price,
+        o.side, o.volume, o.open_price,
+        o.stop_loss, o.take_profit,
+        o.status, o.opened_at
+      FROM orders o
+      JOIN products p ON o.product_id = p.product_id
+      JOIN accounts a ON o.account_id = a.account_id
+      WHERE a.user_id = ? AND o.status = 'OPEN'
+      ORDER BY o.opened_at DESC
     `;
 
-    db.query(accountQuery, [userId], (err, accountResults) => {
+    db.query(query, [userId], (err, orders) => {
       if (err) {
-        return next(new Error("Database error: " + err.message));
+        return res.status(500).json({ message: "Database error: " + err.message });
       }
 
-      if (!accountResults || accountResults.length === 0) {
-        return next(new NotFoundError("Account"));
+      // Calculate P&L for each order
+      const ordersWithPnL = orders.map(order => {
+        const currentPrice = parseFloat(order.current_price) || 0;
+        const openPrice = parseFloat(order.open_price);
+        const volume = parseFloat(order.volume);
+
+        const pnl = calculatePnL(openPrice, currentPrice, volume, order.side);
+        const pnlPercent = calculatePnLPercent(openPrice, currentPrice, volume, order.side);
+
+        return {
+          order_id: order.order_id,
+          product_id: order.product_id,
+          symbol: order.symbol,
+          name: order.name,
+          side: order.side,
+          volume: formatDecimal(order.volume),
+          open_price: formatDecimal(openPrice),
+          current_price: formatDecimal(currentPrice),
+          stop_loss: formatDecimal(order.stop_loss),
+          take_profit: formatDecimal(order.take_profit),
+          pnl: formatDecimal(pnl),
+          pnl_percent: pnlPercent.toFixed(2),
+          status: order.status,
+          opened_at: order.opened_at
+        };
+      });
+
+      res.json({
+        message: 'Orders retrieved successfully',
+        count: ordersWithPnL.length,
+        data: ordersWithPnL
+      });
+    });
+  } catch (error) {
+    console.error("Get orders error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================================================
+// API 3: POST /api/orders/{id}/close - Close order
+// ============================================================
+router.post("/:id/close", verifyToken, async (req, res) => {
+  try {
+    // 1. VALIDATE INPUT
+    const validated = validateCloseOrder(req.body);
+    const orderId = parseInt(req.params.id);
+    const userId = req.userId;
+    const closePrice = parseFloat(validated.close_price);
+
+    if (isNaN(orderId) || orderId <= 0) {
+      return res.status(400).json({ message: "Invalid order ID" });
+    }
+
+    // 2. CALL MEDIATOR
+    const result = await CentralMediator.closeOrder(userId, orderId, closePrice);
+
+    // 3. RETURN RESPONSE
+    res.json(result);
+
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        message: error.message,
+        errors: error.errors || {}
+      });
+    }
+
+    if (error instanceof AppError) {
+      return res.status(error.statusCode).json({ message: error.message });
+    }
+
+    console.error("Close order error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================================================
+// API 4: GET /api/orders/history/list - Get closed order history
+// ============================================================
+router.get("/history/list", verifyToken, (req, res) => {
+  try {
+    // Validate pagination
+    const { limit, page, offset } = validatePagination(req.query);
+    const userId = req.userId;
+
+    // Query 1: Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM orders o
+      JOIN accounts a ON o.account_id = a.account_id
+      WHERE a.user_id = ? AND o.status = 'CLOSED'
+    `;
+
+    db.query(countQuery, [userId], (err, countResults) => {
+      if (err) {
+        return res.status(500).json({ message: "Database error: " + err.message });
       }
 
-      const account = accountResults[0];
+      const total = countResults[0].total;
 
-      // 3. GET PRODUCT INFO & CURRENT PRICE
-      const productQuery = `
-        SELECT product_id, symbol, current_price, is_active
-        FROM products
-        WHERE product_id = ?
+      // Query 2: Get history data with pagination
+      const historyQuery = `
+        SELECT
+          o.order_id, o.product_id,
+          p.symbol, p.name,
+          o.side, o.volume,
+          o.open_price, o.close_price,
+          o.status, o.opened_at, o.closed_at,
+          o.profit_loss
+        FROM orders o
+        JOIN products p ON o.product_id = p.product_id
+        JOIN accounts a ON o.account_id = a.account_id
+        WHERE a.user_id = ? AND o.status = 'CLOSED'
+        ORDER BY o.closed_at DESC
+        LIMIT ? OFFSET ?
       `;
 
-      db.query(productQuery, [validated.product_id], (err, productResults) => {
+      db.query(historyQuery, [userId, limit, offset], (err, orders) => {
         if (err) {
-          return next(new Error("Database error: " + err.message));
+          return res.status(500).json({ message: "Database error: " + err.message });
         }
 
-        if (!productResults || productResults.length === 0 || !productResults[0].is_active) {
-          return next(new NotFoundError("Product"));
-        }
+        // Format response
+        const formattedOrders = orders.map(order => {
+          const openedAt = new Date(order.opened_at);
+          const closedAt = new Date(order.closed_at);
+          const durationMinutes = Math.round((closedAt - openedAt) / (1000 * 60));
 
-        const product = productResults[0];
-        const currentPrice = formatDecimal(product.current_price || 0);
-
-        // 4. VALIDATE PRICE LOGIC
-        const errors = {};
-        const openPrice = parseFloat(currentPrice);
-        const stopLoss = parseFloat(validated.stop_loss);
-        const takeProfit = parseFloat(validated.take_profit);
-
-        if (validated.side === 'BUY') {
-          if (stopLoss >= openPrice) {
-            errors.stop_loss = 'For BUY: stop_loss must be < open_price';
-          }
-          if (takeProfit <= openPrice) {
-            errors.take_profit = 'For BUY: take_profit must be > open_price';
-          }
-        } else {
-          if (stopLoss <= openPrice) {
-            errors.stop_loss = 'For SELL: stop_loss must be > open_price';
-          }
-          if (takeProfit >= openPrice) {
-            errors.take_profit = 'For SELL: take_profit must be < open_price';
-          }
-        }
-
-        if (Object.keys(errors).length > 0) {
-          return next(new ValidationError('Price validation failed', errors));
-        }
-
-        // 5. CALCULATE REQUIRED MARGIN
-        const requiredMargin = calculateRequiredMargin(
-          currentPrice,
-          validated.volume,
-          account.leverage
-        );
-
-        const totalUsedMargin = parseFloat(account.used_margin) + requiredMargin;
-        const availableBalance = parseFloat(account.balance);
-
-        // 6. CHECK BALANCE
-        if (availableBalance < totalUsedMargin) {
-          return next(
-            new InsufficientBalanceError(
-              formatDecimal(totalUsedMargin),
-              formatDecimal(availableBalance)
-            )
+          const pnlPercent = calculatePnLPercent(
+            order.open_price,
+            order.close_price,
+            order.volume,
+            order.side
           );
-        }
 
-        // 7. CREATE ORDER - START TRANSACTION
-        db.query('START TRANSACTION', (err) => {
-          if (err) {
-            return next(new Error('Transaction error: ' + err.message));
-          }
+          return {
+            order_id: order.order_id,
+            symbol: order.symbol,
+            name: order.name,
+            side: order.side,
+            volume: formatDecimal(order.volume),
+            open_price: formatDecimal(order.open_price),
+            close_price: formatDecimal(order.close_price),
+            pnl: formatDecimal(order.profit_loss || 0),
+            pnl_percent: pnlPercent.toFixed(2),
+            status: order.status,
+            opened_at: order.opened_at,
+            closed_at: order.closed_at,
+            duration_minutes: durationMinutes
+          };
+        });
 
-          // Update account - add used_margin
-          const updateAccountQuery = `
-            UPDATE accounts
-            SET used_margin = used_margin + ?
-            WHERE account_id = ?
-          `;
+        res.json({
+          message: 'Order history retrieved successfully',
+          pagination: {
+            total,
+            page,
+            limit,
+            pages: Math.ceil(total / limit)
+          },
+          data: formattedOrders
+        });
+      });
+    });
+  } catch (error) {
+    console.error("Get history error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-          db.query(updateAccountQuery, [requiredMargin, account.account_id], (err) => {
-            if (err) {
-              db.query('ROLLBACK');
-              return next(new Error('Update account error: ' + err.message));
-            }
-
-            // Insert order
-            const insertOrderQuery = `
-              INSERT INTO orders (
-                account_id, product_id, side, volume,
-                open_price, stop_loss, take_profit, status
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')
-            `;
-
-            db.query(
-              insertOrderQuery,
-              [
+module.exports = router;
                 account.account_id,
                 validated.product_id,
                 validated.side,

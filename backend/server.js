@@ -7,6 +7,8 @@ const bodyParser = require("body-parser");
 const authRoutes = require("./routes/auth");
 const ordersRoutes = require("./routes/orders");
 const marketDataRoutes = require("./routes/marketData");
+const adminRoutes = require("./routes/admin");
+const transactionRoutes = require("./routes/transactions");
 const { AppError } = require("./utils/errors");
 const { startScheduler } = require("./scheduler");
 const { startWebSocketServer, startPriceBroadcast } = require("./websocket");
@@ -21,6 +23,8 @@ app.use(bodyParser.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/market", marketDataRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

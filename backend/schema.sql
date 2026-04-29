@@ -9,6 +9,9 @@ CREATE TABLE users (
  email VARCHAR(100) UNIQUE NOT NULL,
  country VARCHAR(50),
  password_hash VARCHAR(255) NOT NULL,
+ role ENUM('user', 'admin') DEFAULT 'user',
+ verify_code VARCHAR(6) NULL,
+ verify_code_expires TIMESTAMP NULL,
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -100,4 +103,12 @@ CREATE INDEX idx_accounts_user ON accounts(user_id);
 -- INSERT SAMPLE PRODUCTS
 INSERT INTO products (symbol, name, category, current_price, is_active) VALUES
 ('BTC-USD', 'Bitcoin', 'crypto', 45000.00000000, TRUE);
+
+-- ============================================================
+-- ALTER STATEMENTS FOR EXISTING DATABASES
+-- ============================================================
+-- Run these if your database already exists:
+-- ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user';
+-- ALTER TABLE users ADD COLUMN verify_code VARCHAR(6) NULL;
+-- ALTER TABLE users ADD COLUMN verify_code_expires TIMESTAMP NULL;
 

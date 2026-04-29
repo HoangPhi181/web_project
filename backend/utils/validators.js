@@ -131,9 +131,37 @@ function validateRegister(body) {
   };
 }
 
+function validateLogin(body) {
+  const errors = {};
+
+  // Validate email
+  if (!body.email || typeof body.email !== 'string') {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    errors.email = 'Invalid email format';
+  }
+
+  // Validate password
+  if (!body.password || typeof body.password !== 'string') {
+    errors.password = 'Password is required';
+  } else if (body.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters long';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError('Validation failed', errors);
+  }
+
+  return {
+    email: body.email.trim().toLowerCase(),
+    password: body.password
+  };
+}
+
 module.exports = {
   validateOrderCreate,
   validateCloseOrder,
   validatePagination,
-  validateRegister
+  validateRegister,
+  validateLogin
 };
