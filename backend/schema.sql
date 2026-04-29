@@ -50,8 +50,8 @@ CREATE TABLE orders (
  close_price DECIMAL(18,8),
  profit_loss DECIMAL(18,8),
  
- stop_loss DECIMAL(18,8),
- take_profit DECIMAL(18,8),
+ stop_loss DECIMAL(18,8) NULL,
+ take_profit DECIMAL(18,8) NULL,
  
  status ENUM('OPEN','CLOSED') DEFAULT 'OPEN',
  opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -111,4 +111,6 @@ INSERT INTO products (symbol, name, category, current_price, is_active) VALUES
 -- ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user';
 -- ALTER TABLE users ADD COLUMN verify_code VARCHAR(6) NULL;
 -- ALTER TABLE users ADD COLUMN verify_code_expires TIMESTAMP NULL;
+-- ALTER TABLE orders MODIFY COLUMN stop_loss DECIMAL(18,8) NULL;
+-- ALTER TABLE orders MODIFY COLUMN take_profit DECIMAL(18,8) NULL;
 

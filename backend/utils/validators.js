@@ -30,17 +30,23 @@ function validateOrderCreate(body) {
   }
 
   // Validate stop_loss
-  if (!body.stop_loss || isNaN(body.stop_loss)) {
-    errors.stop_loss = 'Stop loss must be a valid number';
-  } else if (parseFloat(body.stop_loss) <= 0) {
-    errors.stop_loss = 'Stop loss must be greater than 0';
+  const hasStopLoss = body.stop_loss !== undefined && body.stop_loss !== null && body.stop_loss !== '';
+  if (hasStopLoss) {
+    if (isNaN(body.stop_loss)) {
+      errors.stop_loss = 'Stop loss must be a valid number';
+    } else if (parseFloat(body.stop_loss) <= 0) {
+      errors.stop_loss = 'Stop loss must be greater than 0';
+    }
   }
 
   // Validate take_profit
-  if (!body.take_profit || isNaN(body.take_profit)) {
-    errors.take_profit = 'Take profit must be a valid number';
-  } else if (parseFloat(body.take_profit) <= 0) {
-    errors.take_profit = 'Take profit must be greater than 0';
+  const hasTakeProfit = body.take_profit !== undefined && body.take_profit !== null && body.take_profit !== '';
+  if (hasTakeProfit) {
+    if (isNaN(body.take_profit)) {
+      errors.take_profit = 'Take profit must be a valid number';
+    } else if (parseFloat(body.take_profit) <= 0) {
+      errors.take_profit = 'Take profit must be greater than 0';
+    }
   }
 
   if (Object.keys(errors).length > 0) {
@@ -51,8 +57,8 @@ function validateOrderCreate(body) {
     product_id: parseInt(body.product_id),
     side: body.side.toUpperCase(),
     volume: parseFloat(body.volume).toFixed(8),
-    stop_loss: parseFloat(body.stop_loss).toFixed(8),
-    take_profit: parseFloat(body.take_profit).toFixed(8)
+    stop_loss: hasStopLoss ? parseFloat(body.stop_loss).toFixed(8) : null,
+    take_profit: hasTakeProfit ? parseFloat(body.take_profit).toFixed(8) : null
   };
 }
 

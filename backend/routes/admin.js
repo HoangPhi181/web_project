@@ -5,52 +5,30 @@
 const express = require("express");
 const { verifyAdmin } = require("../middleware/authMiddleware");
 const CentralMediator = require("../mediators/CentralMediator");
-const { AppError } = require("../utils/errors");
 
 const router = express.Router();
 
 // ============================================================
 // API: GET /api/admin/users - Get all users with details
 // ============================================================
-router.get("/users", verifyAdmin, async (req, res) => {
+router.get("/users", verifyAdmin, async (req, res, next) => {
   try {
-    const adminId = req.userId;
-
-    // Call mediator to get all users
-    const result = await CentralMediator.getAllUsersDetailed(adminId);
-
+    const result = await CentralMediator.getAllUsersDetailed(req.userId);
     res.json(result);
-
   } catch (error) {
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-
-    console.error("Get users error:", error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 });
 
 // ============================================================
 // API: PUT /api/admin/settings - Update system settings
 // ============================================================
-router.put("/settings", verifyAdmin, async (req, res) => {
+router.put("/settings", verifyAdmin, async (req, res, next) => {
   try {
-    const adminId = req.userId;
-    const settings = req.body; // Contains the settings to update
-
-    // Call mediator to update settings
-    const result = await CentralMediator.updateSystemSettings(adminId, settings);
-
+    const result = await CentralMediator.updateSystemSettings(req.userId, req.body);
     res.json(result);
-
   } catch (error) {
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-
-    console.error("Update settings error:", error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 });
 

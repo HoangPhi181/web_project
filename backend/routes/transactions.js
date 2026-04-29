@@ -5,123 +5,69 @@
 const express = require("express");
 const verifyToken = require("../middleware/authMiddleware");
 const CentralMediator = require("../mediators/CentralMediator");
-const { ValidationError, AppError } = require("../utils/errors");
+const { ValidationError } = require("../utils/errors");
 
 const router = express.Router();
 
 // ============================================================
 // API: POST /api/transactions/withdraw/code - Request withdrawal code
 // ============================================================
-router.post("/withdraw/code", verifyToken, async (req, res) => {
+router.post("/withdraw/code", verifyToken, async (req, res, next) => {
   try {
-    const userId = req.userId;
-
-    // Call mediator to send verification code
-    const result = await CentralMediator.sendWithdrawCode(userId);
-
+    const result = await CentralMediator.sendWithdrawCode(req.userId);
     res.json(result);
-
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return res.status(400).json({
-        message: error.message,
-        errors: error.errors || {}
-      });
-    }
-
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-
-    console.error("Send withdraw code error:", error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 });
 
 // ============================================================
 // API: POST /api/transactions/withdraw/verify - Process withdrawal with code
 // ============================================================
-router.post("/withdraw/verify", verifyToken, async (req, res) => {
+router.post("/withdraw/verify", verifyToken, async (req, res, next) => {
   try {
-    // 1. VALIDATE INPUT
     const { amount, verify_code } = req.body;
+    const errors = {};
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
+    if (amount === undefined || amount === null || isNaN(amount) || parseFloat(amount) <= 0) {
+      errors.amount = 'Amount must be a valid number greater than 0';
     }
 
     if (!verify_code) {
-      return res.status(400).json({ message: "Verification code required" });
+      errors.verify_code = 'Verification code is required';
     }
 
-    const userId = req.userId;
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationError('Validation failed', errors);
+    }
 
-    // 2. CALL MEDIATOR
-    const result = await CentralMediator.processWithdraw(userId, amount, verify_code);
-
-    // 3. RETURN RESPONSE
+    const result = await CentralMediator.processWithdraw(req.userId, amount, verify_code);
     res.json(result);
-
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return res.status(400).json({
-        message: error.message,
-        errors: error.errors || {}
-      });
-    }
-
-    // Check for insufficient balance (402 status)
-    if (error.statusCode === 402) {
-      return res.status(402).json({
-        message: error.message,
-        required_amount: error.required_margin,
-        available_balance: error.available_balance
-      });
-    }
-
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-
-    console.error("Process withdraw error:", error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 });
 
 // ============================================================
 // API: POST /api/transactions/deposit - Initiate deposit with VietQR
 // ============================================================
-router.post("/deposit", verifyToken, async (req, res) => {
+router.post("/deposit", verifyToken, async (req, res, next) => {
   try {
-    // 1. VALIDATE INPUT
     const { amount } = req.body;
+    const errors = {};
 
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
+    if (amount === undefined || amount === null || isNaN(amount) || parseFloat(amount) <= 0) {
+      errors.amount = 'Amount must be a valid number greater than 0';
     }
 
-    const userId = req.userId;
+    if (Object.keys(errors).length > 0) {
+      throw new ValidationError('Validation failed', errors);
+    }
 
-    // 2. CALL MEDIATOR
-    const result = await CentralMediator.processDeposit(userId, amount);
-
-    // 3. RETURN RESPONSE
+    const result = await CentralMediator.processDeposit(req.userId, amount);
     res.json(result);
-
   } catch (error) {
-    if (error instanceof ValidationError) {
-      return res.status(400).json({
-        message: error.message,
-        errors: error.errors || {}
-      });
-    }
-
-    if (error instanceof AppError) {
-      return res.status(error.statusCode).json({ message: error.message });
-    }
-
-    console.error("Process deposit error:", error);
-    res.status(500).json({ message: "Server error" });
+    next(error);
   }
 });
 
