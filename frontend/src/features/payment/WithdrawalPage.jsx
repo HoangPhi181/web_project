@@ -2,32 +2,33 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
+import { useState } from "react";
 
 function WithdrawalContent() {
   const navigate = useNavigate();
-
+  const [amount, setAmount] = useState(0);
+  let chenhlechgia = 263550;
   return (
     <form>
       <h2>Rút Tiền:</h2>
 
-      <label>Phương thức thanh toán:</label>
-      <input type="text" id="paymentMethod" placeholder="" readOnly />
+      <label>Phương thức chuyển khoản ngân hàng:</label>
+      <input type="text" placeholder="Internet Banking" readOnly />
+
+      <label>Mã số thẻ:</label>
+      <input type="text" id="paymentMethod" placeholder="0571234561" readOnly />
       
       <label>Đơn vị tiền tệ</label>
       <input type="text" placeholder="VND" readOnly />
 
-
       <label>Từ tài khoản:</label>
-      <input type="text" required />
-
-      <label>Phương thức chuyển khoản ngân hàng:</label>
-      <input type="text" placeholder="Internet Banking" readOnly />
+      <input type="text" placeholder="Account Id" required />
 
       <label>Số tiền:</label>
-      <input type="number" required />
+      <input type="number" onChange={(e) => setAmount(e.target.value)}  required />
       <p className="note">15.00 - 10,000.00 USD</p>
 
-      <span><p>số tiền cần rút</p> <p>0 VND</p></span>
+      <span><p>số tiền cần rút</p> <p>{amount*chenhlechgia} VND</p></span>
 
       <button className="withDrawal">Rút tiền</button>
     </form>

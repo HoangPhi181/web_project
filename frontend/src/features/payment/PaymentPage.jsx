@@ -1,8 +1,10 @@
-import {React} from 'react'
+import React, {useState, useEffect }from 'react'
 import { useNavigate } from "react-router-dom";
 import "../../styles/PaymentPage.css"
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
+import { deposit } from '../../api/transactionApi';
+import { useTransaction } from '../../hooks/useTransactionCode';
 
 function Menu() {
   return (
@@ -21,21 +23,63 @@ function Menu() {
 
 function Content() {
   const navigate = useNavigate();
+
+  const {code, generateCode} = useTransaction();
+  const [loading, setLoading] = useState(false);
+  const [amount, setAmount] = useState("");
+
+  useEffect(() => {
+    generateCode();
+  },[]);
+
+  const handleDeposit = async (e) => {
+    e.preventDefault(); // ❗ chặn reload form
+
+    if (!amount || Number(amount) <= 0) {
+      alert("Số tiền không hợp lệ");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await deposit({
+        amount: Number(amount),
+      });
+
+      const data = res.data;
+
+      // 👉 chuyển sang QR page + truyền data
+      navigate("/QRPage", {
+        state: {
+          transaction: data
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Lỗi nạp tiền");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <form>
+    <form onSubmit={handleDeposit}>
       <h2>Thông tin nạp tiền:</h2>
       <label>Mã giao dịch (*):</label>
       <input 
         type="text"
         id="transactionCode"  
         placeholder=""
+        value={code}
         readOnly
       />
-      <label>Nhập user ID (*):</label>
+      <label>Nhập account ID (*):</label>
       <input 
         type="text"
         id="accountID"  
-        placeholder="#User ID"
+        placeholder="#Account ID"
         required
       />
       <label>Số tiền (*):</label>
@@ -43,9 +87,14 @@ function Content() {
         type="number"
         id="money"  
         placeholder="100$"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
         required
       />
-      <button className = "deposit" onClick={() => navigate("/QRPage")}>Nạp tiền</button>
+      {/* <button className = "deposit" onClick={() => navigate("/QRPage")}>Nạp tiền</button> */}
+      <button className="deposit" type="submit" disabled={loading}>
+        {loading ? "Đang xử lý..." : "Nạp tiền"}
+      </button>
     </form>
   )
 }
