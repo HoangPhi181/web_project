@@ -1,26 +1,21 @@
-import { useState } from "react";
+import React from 'react';
+import Sidebar from './Sidebar';
+import Header from './Header';
+import '../../styles/Admin.css';
 
 export default function VerifyRequests() {
-  const [requests, setRequests] = useState([
-    { id: 1, email: "user@gmail.com" },
-  ]);
-
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Verify Requests</h1>
-      {requests.map((r) => (
-        <div key={r.id} className="flex justify-between p-3 border mb-2">
-          <span>{r.email}</span>
-          <div>
-            <button className="bg-green-500 text-white px-3 py-1 mr-2 rounded">
-              Approve
-            </button>
-            <button className="bg-red-500 text-white px-3 py-1 rounded">
-              Reject
-            </button>
-          </div>
+    <div className="ad-wrapper">
+      <Sidebar />
+
+      <div className="ad-main">
+        <Header />
+        <h2 className="ad-title">Verify Requests</h2>
+
+        <div className="ad-box">
+          Pending KYC / Withdraw requests
         </div>
-      ))}
+      </div>
     </div>
   );
 }

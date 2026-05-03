@@ -1,0 +1,111 @@
+
+
+/* Layout */
+.ad-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.ad-sidebar {
+  width: 240px;
+  background: #0f172a;
+  color: white;
+  padding: 20px;
+}
+
+.logo {
+  margin-bottom: 20px;
+}
+
+.menu a {
+  display: block;
+  color: #cbd5f5;
+  text-decoration: none;
+  margin: 8px 0;
+}
+
+.menu a:hover {
+  color: white;
+}
+
+.menu-title {
+  margin-top: 20px;
+  font-size: 12px;
+  color: gray;
+}
+
+/* Main */
+.ad-main {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 40px;
+  background: #020617;
+  color: white;
+}
+
+/* Header */
+.ad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ad-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Title */
+.ad-title {
+  margin: 20px 0;
+}
+
+/* Grid */
+.ad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* Card */
+.ad-card {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.danger {
+  color: red;
+}
+
+/* Box */
+.ad-box {
+  margin-top: 20px;
+  padding: 30px;
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+/* Table */
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ad-table th,
+.ad-table td {
+  border-bottom: 1px solid #334155;
+  padding: 10px;
+  text-align: left;
+}
+
+button {
+  padding: 6px 12px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+}
