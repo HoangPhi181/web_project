@@ -1,435 +1,347 @@
 // backend/mediators/CentralMediator.js
+// Toàn bộ logic nghiệp vụ nằm ở đây.
+// Route chỉ làm 1 việc: nhận request → gọi Mediator → trả response.
+
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const db = require("../db");
-const { calculateRequiredMargin, calculatePnL, calculatePnLPercent, formatDecimal } = require("../utils/calculations");
-const { ValidationError, InsufficientBalanceError, NotFoundError, UnauthorizedError, ConflictError } = require("../utils/errors");
+const jwt    = require("jsonwebtoken");
+const db     = require("../db");
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ── Helper dùng chung ─────────────────────────────────────────────────────────
+const q = (sql, params = []) => db.queryAsync(sql, params);
 
-// Lấy một connection cố định từ Pool — bắt buộc để Transaction hoạt động đúng
-const getConnection = () =>
-  new Promise((resolve, reject) =>
-    db.getConnection((err, conn) => (err ? reject(err) : resolve(conn)))
-  );
-
-// Dùng ngoài Transaction (Pool tự quản lý connection)
-const query = (sql, params = []) =>
-  new Promise((resolve, reject) =>
-    db.query(sql, params, (err, results) => (err ? reject(err) : resolve(results)))
-  );
-
-// Dùng bên trong Transaction (gắn với connection cụ thể)
-const connQuery = (conn, sql, params = []) =>
-  new Promise((resolve, reject) =>
-    conn.query(sql, params, (err, results) => (err ? reject(err) : resolve(results)))
-  );
-
-const refCode = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(5).toString("hex")}`;
-
-class CentralMediator {
-  // Giữ nguyên 1 connection từ đầu đến cuối Transaction
-  static async withTransaction(fn) {
-    const conn = await getConnection();
-    await connQuery(conn, "START TRANSACTION");
-    try {
-      const result = await fn(conn);
-      await connQuery(conn, "COMMIT");
-      return result;
-    } catch (err) {
-      await connQuery(conn, "ROLLBACK").catch((e) => console.error("Rollback failed:", e));
-      throw err;
-    } finally {
-      conn.release(); // Trả về Pool dù thành công hay thất bại
-    }
+async function transaction(logicFn) {
+  const conn = await new Promise((res, rej) => db.getConnection((e, c) => e ? rej(e) : res(c)));
+  const run  = (sql, p = []) => new Promise((res, rej) => conn.query(sql, p, (e, r) => e ? rej(e) : res(r)));
+  try {
+    await run("START TRANSACTION");
+    const result = await logicFn(run);
+    await run("COMMIT");
+    return result;
+  } catch (err) {
+    await run("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    conn.release();
   }
+}
 
-  static async verifyAdmin(adminId) {
-    const [admin] = await query("SELECT role FROM users WHERE user_id = ?", [adminId]);
-    if (!admin || admin.role !== "admin") throw new UnauthorizedError("Admin access required");
-  }
-
-  // ============================================================
-  // AUTH
-  // ============================================================
-
-  static async registerUser(username, email, password, country = null) {
-    if (!password || password.length < 8) throw new ValidationError("Password must be at least 8 characters");
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    return this.withTransaction(async (conn) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────────────────────────
+const Auth = {
+  async register(username, email, password) {
+    const hash = await bcrypt.hash(password, 10);
+    return transaction(async (run) => {
       try {
-        const { insertId: userId } = await connQuery(conn,
-          "INSERT INTO users (username, email, country, password_hash, role) VALUES (?, ?, ?, ?, 'user')",
-          [username, email, country, hashedPassword]
+        const { insertId: userId } = await run(
+          "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
+          [username, email, hash]
         );
-        await connQuery(conn,
-          "INSERT INTO accounts (user_id, balance, used_margin, leverage) VALUES (?, 10000, 0, 100)",
-          [userId]
-        );
-        return { message: "Register success", userId };
+        await run("INSERT INTO accounts (user_id, balance, leverage) VALUES (?, 10000, 100)", [userId]);
+        return { message: "Đăng ký thành công", userId };
       } catch (err) {
-        if (err.code === "ER_DUP_ENTRY") throw new ConflictError("Username or email already exists");
+        if (err.code === "ER_DUP_ENTRY") throw new Error("Username hoặc email đã tồn tại");
         throw err;
       }
     });
-  }
+  },
 
-  static async loginUser(email, password) {
-    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is not configured");
+  async login(email, password) {
+    const [user] = await q("SELECT * FROM users WHERE email = ?", [email]);
+    if (!user || !(await bcrypt.compare(password, user.password_hash)))
+      throw new Error("Sai email hoặc mật khẩu");
+    if (user.status_account === "blocked") throw new Error("Tài khoản đã bị khóa");
+    await q("UPDATE users SET is_online = TRUE WHERE user_id = ?", [user.user_id]);
+    const token = jwt.sign({ id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "8h" });
+    return { message: "Đăng nhập thành công", token };
+  },
 
-    const [user] = await query(
-      "SELECT user_id, username, email, role, password_hash FROM users WHERE email = ?",
-      [email]
+  async logout(userId) {
+    await q("UPDATE users SET is_online = FALSE WHERE user_id = ?", [userId]);
+    return { message: "Đăng xuất thành công" };
+  },
+
+  async getProfile(userId) {
+    const [user] = await q(
+      "SELECT user_id, username, email, role, created_at FROM users WHERE user_id = ?", [userId]
     );
-    if (!user) throw new UnauthorizedError("User not found");
-    if (!(await bcrypt.compare(password, user.password_hash))) throw new UnauthorizedError("Wrong password");
+    if (!user) throw new Error("Không tìm thấy user");
+    return user;
+  },
 
-    const token = jwt.sign(
-      { id: user.user_id, role: user.role, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+  async updateProfile(userId, { username, email }) {
+    if (!username?.trim()) throw new Error("Username không được trống");
+    if (!email?.trim())    throw new Error("Email không được trống");
+    const result = await q(
+      "UPDATE users SET username = ?, email = ? WHERE user_id = ?",
+      [username.trim(), email.trim(), userId]
     );
+    if (result.affectedRows === 0) throw new Error("Không tìm thấy user");
+    return { message: "Cập nhật thành công" };
+  },
+};
 
-    return {
-      message: "Login success",
-      token,
-      user: { id: user.user_id, username: user.username, email: user.email, role: user.role }
-    };
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// TRADE
+// ─────────────────────────────────────────────────────────────────────────────
+const Trade = {
+  // Kiểm tra user có bị khóa không — gọi trước khi tạo lệnh
+  async checkNotBlocked(userId) {
+    const [user] = await q("SELECT status_account FROM users WHERE user_id = ?", [userId]);
+    if (!user)                            throw new Error("Không tìm thấy user");
+    if (user.status_account === "blocked") throw new Error("Tài khoản bị khóa, không thể giao dịch");
+  },
 
-  // ============================================================
-  // TRADING
-  // ============================================================
+  async createOrder(userId, productId, side, volume, stopLoss = null, takeProfit = null) {
+    return transaction(async (run) => {
+      const [account] = await run("SELECT * FROM accounts WHERE user_id = ? FOR UPDATE", [userId]);
+      if (!account) throw new Error("Không tìm thấy tài khoản");
 
-  static async createOrder(userId, productId, side, volume, stopLoss, takeProfit) {
-    return this.withTransaction(async (conn) => {
-      // FOR UPDATE lock account trên connection này — tránh race condition
-      const [account] = await connQuery(conn,
-        "SELECT account_id, balance, used_margin, leverage FROM accounts WHERE user_id = ? FOR UPDATE",
-        [userId]
+      const [product] = await run(
+        "SELECT * FROM products WHERE product_id = ? AND is_active = TRUE", [productId]
       );
-      if (!account) throw new NotFoundError("Account");
+      if (!product) throw new Error("Sản phẩm không tồn tại");
 
-      const [product] = await connQuery(conn,
-        "SELECT product_id, symbol, current_price, is_active FROM products WHERE product_id = ?",
-        [productId]
+      const margin = (parseFloat(product.current_price) * parseFloat(volume)) / (account.leverage || 100);
+      if (parseFloat(account.balance) < margin)
+        throw new Error(`Không đủ số dư. Cần: ${margin.toFixed(2)}, Có: ${account.balance}`);
+
+      await run(
+        "UPDATE accounts SET balance = balance - ?, used_margin = used_margin + ? WHERE account_id = ?",
+        [margin, margin, account.account_id]
       );
-      if (!product || !product.is_active) throw new NotFoundError("Product");
-
-      const openPrice = parseFloat(product.current_price);
-      const vol = parseFloat(volume);
-      const sl = stopLoss != null ? parseFloat(stopLoss) : null;
-      const tp = takeProfit != null ? parseFloat(takeProfit) : null;
-
-      if (isNaN(openPrice) || openPrice <= 0) throw new ValidationError("Validation failed", { product_id: "Invalid product price" });
-      if (isNaN(vol) || vol <= 0) throw new ValidationError("Validation failed", { volume: "Volume must be greater than 0" });
-
-      const errors = {};
-      if (sl != null) {
-        if (isNaN(sl) || sl <= 0) errors.stop_loss = "Stop loss must be greater than 0";
-        else if (side === "BUY" && sl >= openPrice) errors.stop_loss = "For BUY: stop_loss must be < open_price";
-        else if (side === "SELL" && sl <= openPrice) errors.stop_loss = "For SELL: stop_loss must be > open_price";
-      }
-      if (tp != null) {
-        if (isNaN(tp) || tp <= 0) errors.take_profit = "Take profit must be greater than 0";
-        else if (side === "BUY" && tp <= openPrice) errors.take_profit = "For BUY: take_profit must be > open_price";
-        else if (side === "SELL" && tp >= openPrice) errors.take_profit = "For SELL: take_profit must be < open_price";
-      }
-      if (Object.keys(errors).length > 0) throw new ValidationError("Price validation failed", errors);
-
-      const requiredMargin = calculateRequiredMargin(openPrice, vol, account.leverage);
-      const balance = parseFloat(account.balance);
-
-      if (balance < requiredMargin) {
-        throw new InsufficientBalanceError(formatDecimal(requiredMargin), formatDecimal(balance));
-      }
-
-      await connQuery(conn,
-        "UPDATE accounts SET used_margin = used_margin + ?, balance = balance - ? WHERE account_id = ?",
-        [requiredMargin, requiredMargin, account.account_id]
-      );
-
-      const { insertId: orderId } = await connQuery(conn,
+      const { insertId: orderId } = await run(
         "INSERT INTO orders (account_id, product_id, side, volume, open_price, stop_loss, take_profit, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN')",
-        [account.account_id, productId, side, vol, openPrice, sl, tp]
+        [account.account_id, productId, side, volume, product.current_price, stopLoss, takeProfit]
       );
-
-      return {
-        message: "Order created successfully",
-        order_id: orderId,
-        open_price: formatDecimal(openPrice),
-        symbol: product.symbol,
-        status: "OPEN",
-        required_margin: formatDecimal(requiredMargin)
-      };
+      return { message: "Đặt lệnh thành công", orderId, open_price: product.current_price, margin: margin.toFixed(2) };
     });
-  }
+  },
 
-  static async closeOrder(userId, orderId, closePrice) {
-    return this.withTransaction(async (conn) => {
-      const [order] = await connQuery(conn,
-        `SELECT o.order_id, o.account_id, o.side, o.volume, o.open_price, o.status,
-                a.user_id, a.leverage
-         FROM orders o JOIN accounts a ON o.account_id = a.account_id
-         WHERE o.order_id = ? FOR UPDATE`,
-        [orderId]
-      );
-      if (!order) throw new NotFoundError("Order");
-      if (order.user_id !== userId) throw new UnauthorizedError("You do not own this order");
-      if (order.status !== "OPEN") throw new ConflictError("Order is not open");
-
-      const closePriceNum = parseFloat(closePrice);
-      if (isNaN(closePriceNum) || closePriceNum <= 0) {
-        throw new ValidationError("Validation failed", { close_price: "Close price must be a valid number" });
-      }
-
-      const openPrice = parseFloat(order.open_price);
-      const volume = parseFloat(order.volume);
-      const pnl = calculatePnL(openPrice, closePriceNum, volume, order.side);
-      const requiredMargin = calculateRequiredMargin(openPrice, volume, order.leverage);
-
-      await connQuery(conn,
-        "UPDATE orders SET status = 'CLOSED', close_price = ?, profit_loss = ?, closed_at = NOW() WHERE order_id = ?",
-        [closePriceNum, pnl, orderId]
-      );
-      await connQuery(conn,
-        "UPDATE accounts SET balance = balance + ?, used_margin = GREATEST(used_margin - ?, 0) WHERE account_id = ?",
-        [pnl + requiredMargin, requiredMargin, order.account_id]
-      );
-
-      return {
-        message: "Order closed successfully",
-        order_id: orderId,
-        close_price: formatDecimal(closePriceNum),
-        profit_loss: formatDecimal(pnl),
-        pnl_percent: calculatePnLPercent(openPrice, closePriceNum, volume, order.side).toFixed(2),
-        status: "CLOSED"
-      };
-    });
-  }
-
-  static async getOpenOrders(userId) {
-    const orders = await query(
-      `SELECT o.order_id, o.product_id, o.side, o.volume, o.open_price,
-              o.stop_loss, o.take_profit, o.status, o.opened_at,
-              p.symbol, p.name, p.current_price
+  async getOpenOrders(userId) {
+    return q(
+      `SELECT o.order_id, o.side, o.volume, o.open_price, o.stop_loss, o.take_profit, o.opened_at,
+              p.symbol, p.name, p.current_price,
+              CASE WHEN o.side='BUY'  THEN (p.current_price - o.open_price) * o.volume
+                   WHEN o.side='SELL' THEN (o.open_price - p.current_price) * o.volume END AS floating_pnl
        FROM orders o
-       JOIN products p ON o.product_id = p.product_id
        JOIN accounts a ON o.account_id = a.account_id
+       JOIN products p ON o.product_id = p.product_id
        WHERE a.user_id = ? AND o.status = 'OPEN'
        ORDER BY o.opened_at DESC`,
       [userId]
     );
+  },
 
-    const data = orders.map((o) => {
-      const openPrice = parseFloat(o.open_price);
-      const currentPrice = parseFloat(o.current_price) || 0;
-      const volume = parseFloat(o.volume);
-      return {
-        order_id: o.order_id,
-        product_id: o.product_id,
-        symbol: o.symbol,
-        name: o.name,
-        side: o.side,
-        volume: formatDecimal(volume),
-        open_price: formatDecimal(openPrice),
-        current_price: formatDecimal(currentPrice),
-        stop_loss: o.stop_loss != null ? formatDecimal(parseFloat(o.stop_loss)) : null,
-        take_profit: o.take_profit != null ? formatDecimal(parseFloat(o.take_profit)) : null,
-        pnl: formatDecimal(calculatePnL(openPrice, currentPrice, volume, o.side)),
-        pnl_percent: calculatePnLPercent(openPrice, currentPrice, volume, o.side).toFixed(2),
-        status: o.status,
-        opened_at: o.opened_at
-      };
-    });
-
-    return { message: "Open orders retrieved successfully", count: data.length, data };
-  }
-
-  static async getOrderHistory(userId, limit = 20, offset = 0) {
-    limit = Math.min(parseInt(limit) || 20, 100);
-    offset = Math.max(parseInt(offset) || 0, 0);
-
-    const [{ total }] = await query(
-      "SELECT COUNT(*) AS total FROM orders o JOIN accounts a ON o.account_id = a.account_id WHERE a.user_id = ? AND o.status = 'CLOSED'",
+  // Balance + floating P&L tổng hợp
+  async getBalance(userId) {
+    return q(
+      `SELECT a.account_id, a.balance, a.leverage,
+              COALESCE(SUM(
+                CASE WHEN o.side='BUY'  THEN (p.current_price - o.open_price) * o.volume
+                     WHEN o.side='SELL' THEN (o.open_price - p.current_price) * o.volume ELSE 0 END
+              ), 0) AS floating_pnl,
+              a.balance + COALESCE(SUM(
+                CASE WHEN o.side='BUY'  THEN (p.current_price - o.open_price) * o.volume
+                     WHEN o.side='SELL' THEN (o.open_price - p.current_price) * o.volume ELSE 0 END
+              ), 0) AS equity
+       FROM accounts a
+       LEFT JOIN orders   o ON a.account_id = o.account_id AND o.status = 'OPEN'
+       LEFT JOIN products p ON o.product_id = p.product_id
+       WHERE a.user_id = ?
+       GROUP BY a.account_id`,
       [userId]
     );
+  },
 
-    const orders = await query(
-      `SELECT o.order_id, o.product_id, o.side, o.volume, o.open_price,
-              o.close_price, o.profit_loss, o.status, o.opened_at, o.closed_at,
-              p.symbol, p.name
+  async closeOrder(userId, orderId, closePrice) {
+    return transaction(async (run) => {
+      const [order] = await run(
+        `SELECT o.*, a.leverage FROM orders o
+         JOIN accounts a ON o.account_id = a.account_id
+         WHERE o.order_id = ? AND a.user_id = ? AND o.status = 'OPEN' FOR UPDATE`,
+        [orderId, userId]
+      );
+      if (!order) throw new Error("Không tìm thấy lệnh hoặc lệnh đã đóng");
+
+      const pnl    = order.side === "BUY"
+        ? (parseFloat(closePrice) - parseFloat(order.open_price)) * parseFloat(order.volume)
+        : (parseFloat(order.open_price) - parseFloat(closePrice)) * parseFloat(order.volume);
+      const margin = (parseFloat(order.open_price) * parseFloat(order.volume)) / (order.leverage || 100);
+
+      await run(
+        "UPDATE accounts SET balance = balance + ?, used_margin = GREATEST(used_margin - ?, 0) WHERE account_id = ?",
+        [margin + pnl, margin, order.account_id]
+      );
+      await run(
+        "UPDATE orders SET status='CLOSED', close_price=?, profit_loss=?, closed_at=NOW() WHERE order_id=?",
+        [closePrice, pnl, orderId]
+      );
+      return { message: "Đóng lệnh thành công", orderId, pnl: pnl.toFixed(2), close_price: closePrice };
+    });
+  },
+
+  async getOrderHistory(userId, limit = 20, offset = 0) {
+    const orders = await q(
+      `SELECT o.order_id, o.side, o.volume, o.open_price, o.close_price, o.profit_loss,
+              o.stop_loss, o.take_profit, o.opened_at, o.closed_at, p.symbol, p.name
        FROM orders o
-       JOIN products p ON o.product_id = p.product_id
        JOIN accounts a ON o.account_id = a.account_id
+       JOIN products p ON o.product_id = p.product_id
        WHERE a.user_id = ? AND o.status = 'CLOSED'
        ORDER BY o.closed_at DESC LIMIT ? OFFSET ?`,
       [userId, limit, offset]
     );
-
-    const data = orders.map((o) => ({
-      order_id: o.order_id,
-      product_id: o.product_id,
-      symbol: o.symbol,
-      name: o.name,
-      side: o.side,
-      volume: formatDecimal(o.volume),
-      open_price: formatDecimal(o.open_price),
-      close_price: formatDecimal(o.close_price),
-      pnl: formatDecimal(o.profit_loss || 0),
-      pnl_percent: calculatePnLPercent(parseFloat(o.open_price), parseFloat(o.close_price), parseFloat(o.volume), o.side).toFixed(2),
-      status: o.status,
-      opened_at: o.opened_at,
-      closed_at: o.closed_at,
-      duration_minutes: o.opened_at && o.closed_at
-        ? Math.round((new Date(o.closed_at) - new Date(o.opened_at)) / 60000)
-        : null
-    }));
-
-    return {
-      message: "Order history retrieved successfully",
-      pagination: { total, limit, offset, pages: Math.ceil(total / limit) },
-      data
-    };
-  }
-
-  // ============================================================
-  // TRANSACTIONS
-  // ============================================================
-
-  static async sendWithdrawCode(userId) {
-    const [user] = await query("SELECT user_id, email FROM users WHERE user_id = ?", [userId]);
-    if (!user) throw new NotFoundError("User");
-
-    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
-    await query(
-      "UPDATE users SET verify_code = ?, verify_code_expires = DATE_ADD(NOW(), INTERVAL 10 MINUTE) WHERE user_id = ?",
-      [verifyCode, userId]
+    const [{ total }] = await q(
+      "SELECT COUNT(*) AS total FROM orders o JOIN accounts a ON o.account_id=a.account_id WHERE a.user_id=? AND o.status='CLOSED'",
+      [userId]
     );
+    return { data: orders, total, limit, offset };
+  },
+};
 
-    // TODO: Gửi verifyCode qua email đến user.email
-    console.log(`[DEV] Withdraw code for ${user.email}: ${verifyCode}`);
+// ─────────────────────────────────────────────────────────────────────────────
+// WALLET — Nạp tiền (QR VietQR) / Rút tiền / Lịch sử
+//
+// Luồng nạp tiền:
+//   1. User: POST /api/transactions/deposit        → nhận QR + mã tham chiếu
+//   2. User: POST /api/transactions/deposit/:id/paid → báo đã chuyển khoản
+//   3. Admin: GET  /api/admin/deposits              → xem danh sách chờ
+//   4. Admin: PUT  /api/admin/deposits/:id/confirm  → xác nhận → tiền vào ngay
+//             PUT  /api/admin/deposits/:id/reject   → từ chối
+// ─────────────────────────────────────────────────────────────────────────────
+const Wallet = {
+  async deposit(userId, amount) {
+    const [account] = await q("SELECT account_id FROM accounts WHERE user_id = ?", [userId]);
+    if (!account) throw new Error("Không tìm thấy tài khoản");
 
-    return { message: "Verification code sent" };
-  }
-
-  static async processWithdraw(userId, amount, verifyCode) {
-    const withdrawAmount = parseFloat(amount);
-    if (isNaN(withdrawAmount) || withdrawAmount <= 0) throw new ValidationError("Invalid amount");
-
-    return this.withTransaction(async (conn) => {
-      // Lock tài khoản TRƯỚC — buộc các request song song phải xếp hàng, tránh double-spend
-      const [account] = await connQuery(conn,
-        "SELECT account_id, balance FROM accounts WHERE user_id = ? FOR UPDATE",
-        [userId]
-      );
-      if (!account) throw new NotFoundError("Account");
-
-      // Kiểm tra verify_code SAU khi đã có lock
-      const [user] = await connQuery(conn,
-        "SELECT verify_code, verify_code_expires FROM users WHERE user_id = ?",
-        [userId]
-      );
-      if (!user || user.verify_code !== verifyCode) throw new ValidationError("Invalid verification code");
-      if (new Date() > new Date(user.verify_code_expires)) throw new ValidationError("Verification code expired");
-
-      // Schema dùng DECIMAL(18,8) + CHECK(balance >= 0) — DB sẽ chặn nếu balance âm
-      const balance = parseFloat(account.balance);
-      if (balance < withdrawAmount) {
-        throw new InsufficientBalanceError(formatDecimal(withdrawAmount), formatDecimal(balance));
-      }
-
-      await connQuery(conn,
-        "UPDATE accounts SET balance = balance - ? WHERE account_id = ?",
-        [withdrawAmount, account.account_id]
-      );
-
-      const reference_code = refCode("WD");
-      await connQuery(conn,
-        "INSERT INTO transactions (account_id, amount, type, status, reference_code) VALUES (?, ?, 'WITHDRAW', 'COMPLETED', ?)",
-        [account.account_id, withdrawAmount, reference_code]
-      );
-
-      // Xóa code trong cùng transaction — tránh code bị dùng lại nếu có lỗi sau đó
-      await connQuery(conn,
-        "UPDATE users SET verify_code = NULL, verify_code_expires = NULL WHERE user_id = ?",
-        [userId]
-      );
-
-      return {
-        message: "Withdrawal processed successfully",
-        amount: formatDecimal(withdrawAmount),
-        reference_code,
-        status: "COMPLETED"
-      };
-    });
-  }
-
-  static async processDeposit(userId, amount) {
-    const depositAmount = parseFloat(amount);
-    if (isNaN(depositAmount) || depositAmount <= 0) throw new ValidationError("Invalid amount");
-
-    const [account] = await query("SELECT account_id FROM accounts WHERE user_id = ?", [userId]);
-    if (!account) throw new NotFoundError("Account");
-
-    const reference_code = refCode("DEP");
-    await query(
+    const refCode = "DEP" + Date.now(); // Mã duy nhất — user ghi vào nội dung CK
+    const { insertId: transactionId } = await q(
       "INSERT INTO transactions (account_id, amount, type, status, reference_code) VALUES (?, ?, 'DEPOSIT', 'PENDING', ?)",
-      [account.account_id, depositAmount, reference_code]
+      [account.account_id, amount, refCode]
     );
 
-    // TODO: Tích hợp VietQR API để sinh QR thật
-    return {
-      message: "Deposit initiated - QR code generated",
-      amount: formatDecimal(depositAmount),
-      reference_code,
-      status: "PENDING",
-      instructions: "Send funds to the provided QR code. Deposit will be completed within 2-5 minutes."
-    };
-  }
+    // Link QR VietQR — miễn phí, không cần API key
+    // Cấu hình trong .env: BANK_ID, BANK_ACCOUNT, BANK_NAME
+    const qrUrl =
+      `https://img.vietqr.io/image/${process.env.BANK_ID || "MB"}-${process.env.BANK_ACCOUNT || "0123456789"}-compact2.png` +
+      `?amount=${amount}&addInfo=${refCode}&accountName=${encodeURIComponent(process.env.BANK_NAME || "TRADING PLATFORM")}`;
 
-  // ============================================================
-  // ADMIN
-  // ============================================================
+    return { message: "Tạo QR thành công", transaction_id: transactionId, reference_code: refCode, amount, qr_url: qrUrl };
+  },
 
-  static async getAllUsersDetailed(adminId) {
-    await this.verifyAdmin(adminId);
-
-    const results = await query(
-      `SELECT u.user_id, u.username, u.email, u.country, u.role, u.created_at,
-              a.account_id, a.balance, a.used_margin, a.leverage,
-              COUNT(DISTINCT o.order_id) as total_orders,
-              COALESCE(SUM(o.profit_loss), 0) as total_pnl
-       FROM users u
-       LEFT JOIN accounts a ON u.user_id = a.user_id
-       LEFT JOIN orders o ON a.account_id = o.account_id AND o.status = 'CLOSED'
-       GROUP BY u.user_id, a.account_id
-       ORDER BY u.created_at DESC`
+  async markAsPaid(userId, transactionId) {
+    const [tx] = await q(
+      "SELECT t.status FROM transactions t JOIN accounts a ON t.account_id=a.account_id WHERE t.transaction_id=? AND a.user_id=? AND t.type='DEPOSIT'",
+      [transactionId, userId]
     );
+    if (!tx)                       throw new Error("Không tìm thấy giao dịch");
+    if (tx.status === "COMPLETED") throw new Error("Giao dịch đã được xác nhận");
+    if (tx.status === "FAILED")    throw new Error("Giao dịch đã bị từ chối");
+    return { message: "Đã ghi nhận. Vui lòng chờ admin xác nhận." };
+  },
 
-    const usersMap = {};
-    results.forEach(({ user_id, username, email, country, role, created_at, account_id, balance, used_margin, leverage, total_orders, total_pnl }) => {
-      if (!usersMap[user_id]) {
-        usersMap[user_id] = { user_id, username, email, country, role, created_at, accounts: [] };
-      }
-      if (account_id) {
-        usersMap[user_id].accounts.push({
-          account_id,
-          balance: formatDecimal(balance),
-          used_margin: formatDecimal(used_margin),
-          leverage,
-          total_orders,
-          total_pnl: formatDecimal(total_pnl)
-        });
-      }
+  async confirmDeposit(transactionId) {
+    return transaction(async (run) => {
+      const [tx] = await run(
+        "SELECT * FROM transactions WHERE transaction_id=? AND type='DEPOSIT' FOR UPDATE",
+        [transactionId]
+      );
+      if (!tx)                       throw new Error("Không tìm thấy giao dịch");
+      if (tx.status === "COMPLETED") throw new Error("Đã xác nhận trước đó");
+      if (tx.status === "FAILED")    throw new Error("Giao dịch đã bị từ chối");
+
+      await run("UPDATE accounts SET balance = balance + ? WHERE account_id = ?", [tx.amount, tx.account_id]);
+      await run("UPDATE transactions SET status='COMPLETED' WHERE transaction_id=?", [transactionId]);
+      return { message: "Xác nhận nạp tiền thành công", transaction_id: transactionId, amount: tx.amount };
     });
+  },
 
-    const data = Object.values(usersMap);
-    return { message: "Users retrieved successfully", count: data.length, data };
-  }
-}
+  async rejectDeposit(transactionId) {
+    const [tx] = await q("SELECT status FROM transactions WHERE transaction_id=? AND type='DEPOSIT'", [transactionId]);
+    if (!tx)                       throw new Error("Không tìm thấy giao dịch");
+    if (tx.status === "COMPLETED") throw new Error("Đã xác nhận, không thể từ chối");
+    if (tx.status === "FAILED")    throw new Error("Đã từ chối trước đó");
+    await q("UPDATE transactions SET status='FAILED' WHERE transaction_id=?", [transactionId]);
+    return { message: "Đã từ chối giao dịch" };
+  },
 
-module.exports = CentralMediator;
+  async withdraw(userId, amount) {
+    return transaction(async (run) => {
+      const [account] = await run("SELECT * FROM accounts WHERE user_id=? FOR UPDATE", [userId]);
+      if (!account) throw new Error("Không tìm thấy tài khoản");
+      if (parseFloat(account.balance) < parseFloat(amount))
+        throw new Error(`Số dư không đủ. Có: ${account.balance}, Cần rút: ${amount}`);
+      await run("UPDATE accounts SET balance = balance - ? WHERE account_id=?", [amount, account.account_id]);
+      const refCode = "WD" + Date.now();
+      await run(
+        "INSERT INTO transactions (account_id, amount, type, status, reference_code) VALUES (?, ?, 'WITHDRAW', 'COMPLETED', ?)",
+        [account.account_id, amount, refCode]
+      );
+      return { message: "Rút tiền thành công", amount, reference_code: refCode };
+    });
+  },
+
+  async getHistory(userId) {
+    return q(
+      `SELECT t.transaction_id, t.amount, t.type, t.status, t.reference_code, t.created_at
+       FROM transactions t JOIN accounts a ON t.account_id=a.account_id
+       WHERE a.user_id=? ORDER BY t.created_at DESC LIMIT 50`,
+      [userId]
+    );
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────────────────────────────────────
+const Admin = {
+  async getAllUsers() {
+    return q("SELECT user_id, username, email, phone, role, status_account, is_online, created_at FROM users ORDER BY user_id DESC");
+  },
+
+  async searchByPhone(phone) {
+    return q(
+      "SELECT user_id, username, email, phone, role, status_account, is_online FROM users WHERE phone LIKE ?",
+      [`%${phone}%`]
+    );
+  },
+
+  async blockUser(adminId, userId) {
+    if (adminId === userId) throw new Error("Không thể tự khóa tài khoản của mình");
+    const [user] = await q("SELECT user_id FROM users WHERE user_id=?", [userId]);
+    if (!user) throw new Error("Không tìm thấy user");
+    await q("UPDATE users SET status_account='blocked' WHERE user_id=?", [userId]);
+    return { message: "Đã khóa user thành công" };
+  },
+
+  async unblockUser(adminId, userId) {
+    const [user] = await q("SELECT user_id FROM users WHERE user_id=?", [userId]);
+    if (!user) throw new Error("Không tìm thấy user");
+    await q("UPDATE users SET status_account='active' WHERE user_id=?", [userId]);
+    return { message: "Đã mở khóa user thành công" };
+  },
+
+  async updateRole(adminId, userId, newRole) {
+    if (!["user", "admin"].includes(newRole)) throw new Error("Role chỉ được là 'user' hoặc 'admin'");
+    const [user] = await q("SELECT user_id FROM users WHERE user_id=?", [userId]);
+    if (!user) throw new Error("Không tìm thấy user");
+    await q("UPDATE users SET role=? WHERE user_id=?", [newRole, userId]);
+    return { message: "Cập nhật role thành công" };
+  },
+
+  async getPendingDeposits() {
+    return q(
+      `SELECT t.transaction_id, t.amount, t.reference_code, t.created_at,
+              u.user_id, u.username, u.email, a.account_id
+       FROM transactions t
+       JOIN accounts a ON t.account_id=a.account_id
+       JOIN users    u ON a.user_id=u.user_id
+       WHERE t.type='DEPOSIT' AND t.status='PENDING'
+       ORDER BY t.created_at ASC`
+    );
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+module.exports = { Auth, Trade, Wallet, Admin };

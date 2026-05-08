@@ -1,81 +1,54 @@
 // backend/routes/orders.js
-// Thin Orders Controller - Uses CentralMediator for business logic
-// Routes: Create Order, Get Open Orders, Close Order, Order History
 
-const express = require("express");
+const express     = require("express");
 const verifyToken = require("../middleware/authMiddleware");
-const CentralMediator = require("../mediators/CentralMediator");
-const {
-  validateOrderCreate,
-  validateCloseOrder,
-  validatePagination
-} = require("../utils/validators");
+const Mediator    = require("../mediators/CentralMediator");
+const { validateOrderCreate, validateCloseOrder, validatePagination } = require("../utils/validators");
 
 const router = express.Router();
 
-// ============================================================
-// API 1: POST /api/orders/create - Create BUY/SELL order
-// ============================================================
+// POST /api/orders/create — Tạo lệnh BUY/SELL
 router.post("/create", verifyToken, async (req, res, next) => {
   try {
-    const validated = validateOrderCreate(req.body);
-    const result = await CentralMediator.createOrder(
-      req.userId,
-      validated.product_id,
-      validated.side,
-      validated.volume,
-      validated.stop_loss,
-      validated.take_profit
+    await Mediator.Trade.checkNotBlocked(req.userId); // kiểm tra tài khoản không bị khóa
+    const v = validateOrderCreate(req.body);
+    const result = await Mediator.Trade.createOrder(
+      req.userId, v.product_id, v.side, v.volume, v.stop_loss, v.take_profit
     );
-
     res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
+  } catch (err) { next(err); }
 });
 
-// ============================================================
-// API 2: GET /api/orders - Get open orders for current user
-// ============================================================
-router.get("/", verifyToken, async (req, res, next) => {
+// GET /api/orders/opening — Danh sách lệnh đang mở + floating P&L
+router.get("/opening", verifyToken, async (req, res, next) => {
   try {
-    const result = await CentralMediator.getOpenOrders(req.userId);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
+    res.json(await Mediator.Trade.getOpenOrders(req.userId));
+  } catch (err) { next(err); }
 });
 
-// ============================================================
-// API 3: POST /api/orders/{id}/close - Close order
-// ============================================================
+// GET /api/orders/balance — Số dư + equity + floating P&L
+router.get("/balance", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await Mediator.Trade.getBalance(req.userId));
+  } catch (err) { next(err); }
+});
+
+// POST /api/orders/:id/close — Đóng lệnh
 router.post("/:id/close", verifyToken, async (req, res, next) => {
   try {
-    const validated = validateCloseOrder(req.body);
     const orderId = parseInt(req.params.id, 10);
-
-    if (isNaN(orderId) || orderId <= 0) {
-      throw new Error("Invalid order ID");
-    }
-
-    const result = await CentralMediator.closeOrder(req.userId, orderId, validated.close_price);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
+    if (!orderId || orderId <= 0) throw new Error("Order ID không hợp lệ");
+    const { close_price } = validateCloseOrder(req.body);
+    res.json(await Mediator.Trade.closeOrder(req.userId, orderId, close_price));
+  } catch (err) { next(err); }
 });
 
-// ============================================================
-// API 4: GET /api/orders/history/list - Get closed order history
-// ============================================================
+// GET /api/orders/history/list — Lịch sử lệnh đã đóng (có phân trang)
 router.get("/history/list", verifyToken, async (req, res, next) => {
   try {
-    const { limit, page, offset } = validatePagination(req.query);
-    const result = await CentralMediator.getOrderHistory(req.userId, limit, offset);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
+    const { limit, offset } = validatePagination(req.query);
+    res.json(await Mediator.Trade.getOrderHistory(req.userId, limit, offset));
+  } catch (err) { next(err); }
 });
 
 module.exports = router;
