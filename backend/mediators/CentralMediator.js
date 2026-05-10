@@ -5,6 +5,7 @@
 const bcrypt = require("bcrypt");
 const jwt    = require("jsonwebtoken");
 const db     = require("../db");
+const { sendOTP } = require("../utils/mailer");
 
 // ── Helper dùng chung ─────────────────────────────────────────────────────────
 const q = (sql, params = []) => db.queryAsync(sql, params);
@@ -78,6 +79,96 @@ const Auth = {
     );
     if (result.affectedRows === 0) throw new Error("Không tìm thấy user");
     return { message: "Cập nhật thành công" };
+  },
+
+  // ── QUÊN MẬT KHẨU — Bước 1 ───────────────────────────────────────────────
+  //
+  // Luồng:
+  //   BƯỚC 1: User nhập email → backend gửi OTP về email
+  //           POST /api/auth/forgot-password
+  //
+  //   BƯỚC 2: User nhập OTP + mật khẩu mới → backend xác nhận → đổi mật khẩu
+  //           POST /api/auth/reset-password
+  //
+  // Dùng chung 2 cột đã có sẵn trong bảng users:
+  //   verify_code         VARCHAR(6)  — lưu OTP 6 số
+  //   verify_code_expires TIMESTAMP   — thời điểm hết hạn (5 phút)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // POST /api/auth/forgot-password
+  // Nhận: { email }
+  // Xử lý:
+  //   1. Kiểm tra email có tồn tại trong DB không
+  //   2. Sinh OTP 6 số ngẫu nhiên
+  //   3. Lưu OTP + thời gian hết hạn vào DB
+  //   4. Gửi email chứa OTP tới user
+  // Trả về: thông báo đã gửi (không tiết lộ email có tồn tại hay không — bảo mật)
+  async forgotPassword(email) {
+    // Tìm user theo email
+    const [user] = await q("SELECT user_id, email FROM users WHERE email = ?", [email]);
+
+    // Không tiết lộ email có tồn tại hay không
+    // → Luôn trả về cùng 1 thông báo dù email đúng hay sai (tránh dò email)
+    if (!user) return { message: "Nếu email tồn tại, mã OTP đã được gửi." };
+
+    // Sinh OTP 6 số ngẫu nhiên: 100000 → 999999
+    const otp     = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hết hạn sau 5 phút kể từ thời điểm gửi
+    const expires = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Lưu OTP vào DB — dùng chung cột verify_code với chức năng rút tiền
+    await q(
+      "UPDATE users SET verify_code = ?, verify_code_expires = ? WHERE user_id = ?",
+      [otp, expires, user.user_id]
+    );
+
+    // Gửi email OTP đặt lại mật khẩu
+    await sendOTP(user.email, otp, "reset");
+
+    return { message: "Nếu email tồn tại, mã OTP đã được gửi." };
+  },
+
+  // POST /api/auth/reset-password
+  // Nhận: { email, otp, new_password }
+  // Xử lý:
+  //   1. Tìm user theo email
+  //   2. Kiểm tra OTP đúng không
+  //   3. Kiểm tra OTP còn hạn không (< 5 phút)
+  //   4. Hash mật khẩu mới
+  //   5. Cập nhật password_hash vào DB
+  //   6. Xóa OTP đã dùng (tránh dùng lại)
+  async resetPassword(email, otp, newPassword) {
+    // Validate mật khẩu mới tối thiểu 8 ký tự
+    if (!newPassword || newPassword.length < 8)
+      throw new Error("Mật khẩu mới phải từ 8 ký tự trở lên");
+
+    // Tìm user kèm thông tin OTP
+    const [user] = await q(
+      "SELECT user_id, verify_code, verify_code_expires FROM users WHERE email = ?",
+      [email]
+    );
+    if (!user)              throw new Error("Email không tồn tại");
+    if (!user.verify_code)  throw new Error("Chưa yêu cầu đặt lại mật khẩu");
+
+    // Kiểm tra OTP có đúng không
+    if (user.verify_code !== otp.toString().trim())
+      throw new Error("Mã OTP không đúng");
+
+    // Kiểm tra OTP còn hạn không
+    if (new Date() > new Date(user.verify_code_expires))
+      throw new Error("Mã OTP đã hết hạn. Vui lòng yêu cầu lại.");
+
+    // Hash mật khẩu mới trước khi lưu
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu mới + xóa OTP đã dùng (1 lần dùng duy nhất)
+    await q(
+      "UPDATE users SET password_hash = ?, verify_code = NULL, verify_code_expires = NULL WHERE user_id = ?",
+      [hash, user.user_id]
+    );
+
+    return { message: "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại." };
   },
 };
 
@@ -264,6 +355,70 @@ const Wallet = {
     if (tx.status === "FAILED")    throw new Error("Đã từ chối trước đó");
     await q("UPDATE transactions SET status='FAILED' WHERE transaction_id=?", [transactionId]);
     return { message: "Đã từ chối giao dịch" };
+  },
+
+  // BƯỚC 1 — User yêu cầu rút tiền → gửi OTP về email
+  async requestWithdraw(userId, amount) {
+    // Lấy email + kiểm tra số dư
+    const [user] = await q("SELECT email FROM users WHERE user_id=?", [userId]);
+    if (!user) throw new Error("Không tìm thấy user");
+
+    const [account] = await q("SELECT balance FROM accounts WHERE user_id=?", [userId]);
+    if (!account) throw new Error("Không tìm thấy tài khoản");
+    if (parseFloat(account.balance) < parseFloat(amount))
+      throw new Error(`Số dư không đủ. Có: ${account.balance}, Cần rút: ${amount}`);
+
+    // Sinh mã OTP 6 số ngẫu nhiên
+    const otp     = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // hết hạn sau 5 phút
+
+    // Lưu OTP vào DB
+    await q(
+      "UPDATE users SET verify_code=?, verify_code_expires=? WHERE user_id=?",
+      [otp, expires, userId]
+    );
+
+    // Gửi email
+    await sendOTP(user.email, otp);
+
+    return { message: `Mã OTP đã gửi tới ${user.email}. Có hiệu lực trong 5 phút.` };
+  },
+
+  // BƯỚC 2 — User nhập OTP → xác nhận rút tiền
+  async verifyWithdraw(userId, amount, otp) {
+    // Kiểm tra OTP
+    const [user] = await q(
+      "SELECT verify_code, verify_code_expires FROM users WHERE user_id=?",
+      [userId]
+    );
+    if (!user)                          throw new Error("Không tìm thấy user");
+    if (!user.verify_code)              throw new Error("Chưa yêu cầu mã OTP");
+    if (user.verify_code !== otp)       throw new Error("Mã OTP không đúng");
+    if (new Date() > new Date(user.verify_code_expires))
+                                        throw new Error("Mã OTP đã hết hạn");
+
+    // OTP hợp lệ → xóa mã + thực hiện rút tiền trong transaction
+    return transaction(async (run) => {
+      const [account] = await run("SELECT * FROM accounts WHERE user_id=? FOR UPDATE", [userId]);
+      if (!account) throw new Error("Không tìm thấy tài khoản");
+      if (parseFloat(account.balance) < parseFloat(amount))
+        throw new Error(`Số dư không đủ. Có: ${account.balance}, Cần rút: ${amount}`);
+
+      // Trừ tiền
+      await run("UPDATE accounts SET balance = balance - ? WHERE account_id=?", [amount, account.account_id]);
+
+      // Lưu giao dịch
+      const refCode = "WD" + Date.now();
+      await run(
+        "INSERT INTO transactions (account_id, amount, type, status, reference_code) VALUES (?, ?, 'WITHDRAW', 'COMPLETED', ?)",
+        [account.account_id, amount, refCode]
+      );
+
+      // Xóa OTP đã dùng
+      await run("UPDATE users SET verify_code=NULL, verify_code_expires=NULL WHERE user_id=?", [userId]);
+
+      return { message: "Rút tiền thành công", amount, reference_code: refCode };
+    });
   },
 
   async withdraw(userId, amount) {
