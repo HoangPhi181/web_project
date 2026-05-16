@@ -1,13 +1,11 @@
-// backend/routes/admin.js
-// Quản lý user + Xét duyệt nạp tiền (chỉ admin)
+// backend/routes/admin.js (v3)
+// Cập nhật: updateRole truyền thêm callerRole để kiểm tra phân quyền
 
-const express        = require("express");
-const { verifyAdmin } = require("../middleware/authMiddleware");
-const Mediator       = require("../mediators/CentralMediator");
+const express            = require("express");
+const { verifyAdmin }    = require("../middleware/authMiddleware");
+const Mediator           = require("../mediators/CentralMediator");
 
 const router = express.Router();
-
-// ── Quản lý User ─────────────────────────────────────────────────────────────
 
 // GET /api/admin/users
 router.get("/users", verifyAdmin, async (req, res, next) => {
@@ -19,7 +17,8 @@ router.get("/users", verifyAdmin, async (req, res, next) => {
 // GET /api/admin/users/search?phone=...
 router.get("/users/search", verifyAdmin, async (req, res, next) => {
   try {
-    if (!req.query.phone) return res.status(400).json({ message: "Thiếu tham số phone" });
+    if (!req.query.phone)
+      return res.status(400).json({ message: "Thiếu tham số phone" });
     res.json(await Mediator.Admin.searchByPhone(req.query.phone));
   } catch (err) { next(err); }
 });
@@ -39,39 +38,36 @@ router.put("/users/:id/unblock", verifyAdmin, async (req, res, next) => {
 });
 
 // PUT /api/admin/users/:id/role
+// Truyền thêm req.userRole để adminMediator kiểm tra phân quyền
 router.put("/users/:id/role", verifyAdmin, async (req, res, next) => {
   try {
-    res.json(await Mediator.Admin.updateRole(req.userId, parseInt(req.params.id), req.body.role));
+    res.json(await Mediator.Admin.updateRole(
+      req.userId,              // id người gọi
+      req.userRole,            // role người gọi (admin | superadmin)
+      parseInt(req.params.id), // id người được đổi
+      req.body.role            // role mới muốn đặt
+    ));
   } catch (err) { next(err); }
 });
 
-// ── Xét duyệt Nạp tiền ───────────────────────────────────────────────────────
-//
-// Luồng:
-//   1. User tạo QR  → POST /api/transactions/deposit
-//   2. User bấm "Đã thanh toán" → POST /api/transactions/deposit/:id/paid
-//   3. Admin xem danh sách → GET  /api/admin/deposits
-//   4. Admin xác nhận     → PUT  /api/admin/deposits/:id/confirm  → tiền vào tài khoản
-//      hoặc từ chối       → PUT  /api/admin/deposits/:id/reject
-
-// GET /api/admin/deposits  — Danh sách yêu cầu đang chờ
+// GET /api/admin/deposits
 router.get("/deposits", verifyAdmin, async (req, res, next) => {
   try {
     res.json(await Mediator.Admin.getPendingDeposits());
   } catch (err) { next(err); }
 });
 
-// PUT /api/admin/deposits/:id/confirm  — Xác nhận → cộng tiền
+// PUT /api/admin/deposits/:id/confirm
 router.put("/deposits/:id/confirm", verifyAdmin, async (req, res, next) => {
   try {
-    res.json(await Mediator.Wallet.confirmDeposit(req.userId, parseInt(req.params.id)));
+    res.json(await Mediator.Wallet.confirmDeposit(parseInt(req.params.id)));
   } catch (err) { next(err); }
 });
 
-// PUT /api/admin/deposits/:id/reject  — Từ chối
+// PUT /api/admin/deposits/:id/reject
 router.put("/deposits/:id/reject", verifyAdmin, async (req, res, next) => {
   try {
-    res.json(await Mediator.Wallet.rejectDeposit(req.userId, parseInt(req.params.id)));
+    res.json(await Mediator.Wallet.rejectDeposit(parseInt(req.params.id)));
   } catch (err) { next(err); }
 });
 
