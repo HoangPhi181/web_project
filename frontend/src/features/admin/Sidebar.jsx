@@ -14,6 +14,7 @@ export default function Sidebar() {
 
         <p className="menu-title">System</p>
         <Link to="/admin/code">Create Code</Link>
+        <Link to="/admin/pending">Deposit/WithDraw Pending</Link>
       </div>
     </div>
   );

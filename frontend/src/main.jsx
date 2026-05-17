@@ -5,6 +5,7 @@ import "./index.css";
 
 import HomePage from "./features/home/HomePage";
 import Login_Register from "./features/auth/Login_Register";
+import ForgotAccount from "./features/auth/ForgotAccount";
 import UserPage from "./features/account/UserPage";
 import MarketPage from "./features/trading/MarketPage";
 import HistoryPage from "./features/account/HistoryPage";
@@ -19,6 +20,9 @@ import ManageUsers from "./features/admin/ManageUsers";
 import VerifyRequests from "./features/admin/VerifyRequests";
 import CreateCode from "./features/admin/CreateCode";
 
+import AdminRoute from "./features/admin/AdminRoute";
+import Pending from "./features/admin/Pending";
+
 
 function App() {
   return (
@@ -27,19 +31,61 @@ function App() {
         <Route path="/" element={<HomePage />} /> 
         <Route path="/HomePage" element={<HomePage />} />
         <Route path="/Login_Register" element={<Login_Register />} />
+        <Route path="/forgot-password" element={<ForgotAccount />} />
         <Route path="/UserPage" element={<UserPage />} />
         <Route path="/MarketPage" element={<MarketPage />} />
-        <Route path="/HistoryPage" element={<HistoryPage />} />
-        <Route path="/PaymentPage" element={<PaymentPage />} />
+        <Route path="/HistoryPage" element={<HistoryPage />} />   
         <Route path="/PerformancePage" element={<PerformancePage />} />
         <Route path="/ProfilePage" element={<ProfilePage />} />
         <Route path="/WithdrawalPage" element={<WithdrawalPage />} />
+        <Route path="/PaymentPage" element={<PaymentPage />} />
         <Route path="/QRPage" element={<QRPage />} />
 
-        <Route path="/admin" element={<Dashboard />} />
-        <Route path="/admin/users" element={<ManageUsers />} />
-        <Route path="/admin/verify" element={<VerifyRequests />} />
-        <Route path="/admin/code" element={<CreateCode />} />
+
+        {/* ----------admin---------- */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Dashboard />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <ManageUsers />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/verify"
+          element={
+            <AdminRoute>
+              <VerifyRequests />
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/admin/code"
+          element={
+            <AdminRoute>
+              <CreateCode />
+            </AdminRoute>
+          }
+        />
+        <Route 
+          path="/admin/pending" 
+          element={
+            <AdminRoute>
+              <Pending />
+            </AdminRoute>
+          } 
+        />
       </Routes>
     </BrowserRouter>
   );

@@ -7,7 +7,7 @@ import { useState } from "react";
 function WithdrawalContent() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState(0);
-  let chenhlechgia = 263550;
+  let chenhlechgia = 26300;
   return (
     <form>
       <h2>Rút Tiền:</h2>
@@ -42,7 +42,7 @@ export default function WithdrawalPage() {
         {`
         .withdrawal-container {
             color: #fff;
-            min-height: 100vh;
+            min-height: 70vh;
         }
 
         .withdrawal-layout {
@@ -52,6 +52,7 @@ export default function WithdrawalPage() {
 
         .withdrawal-layout form {
             max-width: 700px;
+            height: 70vh;
             margin: 40px 500px;
             width: 90%;
             background: rgba(255,255,255,0.1);

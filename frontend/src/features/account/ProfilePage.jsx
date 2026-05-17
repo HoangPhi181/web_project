@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
+import profileMediator from "../../services/ProfileMediator";
+import { profile } from '../../api/authApi';
 
 export default function ProfilePage() {
     const navigate = useNavigate();
@@ -47,7 +49,7 @@ export default function ProfilePage() {
                 }
 
                 // ĐÚNG: Gọi vào /api/auth/profile
-                const res = await axios.get("http://localhost:5000/api/auth/profile", {
+                const res = await profile({
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -78,7 +80,8 @@ export default function ProfilePage() {
             });
 
             alert("Cập nhật thành công!");
-            navigate("/UserPage");
+            profileMediator.redirectHome(navigate);
+            // navigate("/UserPage");
         } catch (error) {
             console.error(error);
             alert(error.response?.data?.message || "Cập nhật thất bại");
@@ -132,7 +135,7 @@ export default function ProfilePage() {
             }
 
             .user-information input {
-                width: 96%;
+                width: 100%;
                 box-sizing: border-box;
                 padding: 12px 15px;
                 border-radius: 8px;
@@ -161,7 +164,7 @@ export default function ProfilePage() {
                 border: none;
                 border-radius: 8px;
                 padding: 12px 95px;
-                margin-right: 16px;
+                // margin-right: 16px;
                 font-weight: bold;
                 cursor: pointer;
                 transition: all 0.3s ease;
@@ -249,6 +252,14 @@ export default function ProfilePage() {
                 />
 
                 <input 
+                    type="phone" 
+                    placeholder="Phone" 
+                    value={userData.phone || ''} 
+                    required 
+                    onChange={(e) => setUserData({...userData, email: e.target.value})}
+                />
+
+                <input 
                     type="text" 
                     placeholder="Created date" 
                     value={userData.created_at ? new Date(userData.created_at).toLocaleDateString('vi-VN') : ''} 
@@ -256,7 +267,7 @@ export default function ProfilePage() {
                 />
 
                 <div className="button-group">
-                    <button className="exit" onClick={() => navigate("/UserPage")}>Exit</button>
+                    <button className="exit" onClick={() => profileMediator.redirectHome(navigate)}>Exit</button>
                     <button className="update" onClick={handleUpdate}>Update</button>
                 </div>
             </div>

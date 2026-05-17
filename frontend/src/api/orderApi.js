@@ -50,7 +50,7 @@ export const close = (orderId, payload) => {
 
 //------------------ HISTORY ORDER ----------------
 export const history = (payload) => {
-    return axiosClient.post(
+    return axiosClient.get(
         "orders/history/list",
         payload,
         authConfig()

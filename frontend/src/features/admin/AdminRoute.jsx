@@ -2,11 +2,14 @@ import { Navigate } from "react-router-dom";
 
 export default function AdminRoute({ children }) {
     const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
-    
-    if (!token || user?.role !== "admin") {
+
+    if (!token) {
         return <Navigate to="/Login_Register" replace />;
     }
 
-    return children;
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+
+    return user?.role === "admin"
+        ? children
+        : <Navigate to="/Login_Register" replace />;
 }

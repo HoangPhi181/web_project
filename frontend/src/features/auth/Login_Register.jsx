@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { register } from '../../api/authApi';
 import { login } from '../../api/authApi';
+import { jwtDecode } from "jwt-decode";
 
 function Login({onSwitch}) {
     const navigate = useNavigate(); 
@@ -12,24 +13,38 @@ function Login({onSwitch}) {
 
 
     const handleLogin = async (e) => {
-        e.preventDefault(); // Ngăn trang web load lại
+        e.preventDefault();
+
         try {
-            // 2. Gọi API login từ backend
-            const res = await login ({
+            const res = await login({
                 email,
                 password
             });
 
-            // 3. Lưu JWT Token vào localStorage
-            localStorage.setItem("token", res.data.token);
+            const token = res.data.token;
+
+            const decoded = jwtDecode(token);
+            console.log("decoded:", decoded);
+
+            // lưu token
+            localStorage.setItem("token", token);
+
+            // lưu user từ token
+            localStorage.setItem("user", JSON.stringify(decoded));
+
             alert("Đăng nhập thành công!");
-            
-            // 4. Chuyển hướng
-            navigate("/UserPage");
+
+            // dùng decoded.role chứ KHÔNG dùng res.data.user
+            if (decoded.role === "admin") {
+                navigate("/admin");
+            } else {
+                navigate("/UserPage");
+            }
+
         } catch (error) {
             alert(error.response?.data?.message || "Đăng nhập thất bại");
         }
-    }
+    };
 
 
     return (
@@ -58,7 +73,7 @@ function Login({onSwitch}) {
                 />
 
                 <button type = "submit">Login</button>
-                <p>Don't have an account?</p>
+                <p onClick={() => navigate("/forgot-password")} style={{ cursor: "pointer" }}>Don't have an account?</p>
                 <a href="#" onClick={onSwitch}>Register</a>
             </article>
 
@@ -86,6 +101,8 @@ function Register({onSwitch}) {
             alert(`Đăng ký thành công! Tên tạm thời của bạn là: ${defaultUsername}`);
             onSwitch();
         } catch (error) {
+              console.log(error.response);
+                console.log(error.response?.data);
             alert(error.response?.data?.message || "Đăng ký thất bại");
         }
     }

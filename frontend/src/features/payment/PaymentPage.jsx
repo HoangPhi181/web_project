@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../../styles/PaymentPage.css"
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
-import { deposit } from '../../api/transactionApi';
-import { useTransaction } from '../../hooks/useTransactionCode';
+import { deposit , markAsPaid} from '../../api/transactionApi';
 
 function Menu() {
   return (
@@ -24,19 +23,21 @@ function Menu() {
 function Content() {
   const navigate = useNavigate();
 
-  const {code, generateCode} = useTransaction();
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState("");
-
-  useEffect(() => {
-    generateCode();
-  },[]);
+  const [accountId, setAccountId] = useState("");
+  
 
   const handleDeposit = async (e) => {
-    e.preventDefault(); // ❗ chặn reload form
+    e.preventDefault();
 
     if (!amount || Number(amount) <= 0) {
       alert("Số tiền không hợp lệ");
+      return;
+    }
+
+    if (!accountId) {
+      alert("Vui lòng nhập account ID");
       return;
     }
 
@@ -45,14 +46,12 @@ function Content() {
 
       const res = await deposit({
         amount: Number(amount),
+        account_id: accountId
       });
 
-      const data = res.data;
-
-      // 👉 chuyển sang QR page + truyền data
       navigate("/QRPage", {
         state: {
-          transaction: data
+          transaction: res.data
         }
       });
 
@@ -67,38 +66,47 @@ function Content() {
   return (
     <form onSubmit={handleDeposit}>
       <h2>Thông tin nạp tiền:</h2>
-      <label>Mã giao dịch (*):</label>
+
+      <label>Phương thức chuyển khoản ngân hàng (*):</label>
       <input 
-        type="text"
-        id="transactionCode"  
-        placeholder=""
-        value={code}
+        type="text" 
+        placeholder="Thanh toán nhanh chóng qua VietQR"
         readOnly
       />
-      <label>Nhập account ID (*):</label>
+
+      <label>Đến tài khoản (*):</label>
       <input 
         type="text"
-        id="accountID"  
-        placeholder="#Account ID"
+        value={accountId}
+        onChange={(e) => setAccountId(e.target.value)}
         required
       />
+
       <label>Số tiền (*):</label>
       <input 
         type="number"
-        id="money"  
-        placeholder="100$"
+        placeholder= "0 USD"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         required
       />
-      {/* <button className = "deposit" onClick={() => navigate("/QRPage")}>Nạp tiền</button> */}
-      <button className="deposit" type="submit" disabled={loading}>
+      <p  style={{
+          padding: "16px 18px",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: "4px",
+          color: "white",
+          fontSize: "18px",
+      }}>
+        Số tiền cần nạp: {Math.round(Number(amount) * 26300).toLocaleString("vi-VN")} VNĐ
+      </p>
+
+      <button className='deposit' type="submit" disabled={loading}>
         {loading ? "Đang xử lý..." : "Nạp tiền"}
       </button>
     </form>
-  )
+  );
 }
-
 export default function PaymentPage() {
   return (
     <div className='paymentPage-container'>

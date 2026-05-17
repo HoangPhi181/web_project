@@ -121,7 +121,6 @@
     margin-left: auto;
 }
 
-/*----------------------------------------------------------------------------*/
 
 .register-container {
     position: absolute;
@@ -280,3 +279,6 @@
 }
 
 
+.login-container.flipped {
+  transform: rotateY(180deg);
+}

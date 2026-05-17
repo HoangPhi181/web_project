@@ -97,15 +97,288 @@
 .ad-table th,
 .ad-table td {
   border-bottom: 1px solid #334155;
-  padding: 10px;
+  padding: 12px 10px;
   text-align: left;
+  vertical-align: middle;
 }
 
-button {
+/* Radio group */
+.rd-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  white-space: nowrap;
+  padding: 0; /* ❌ bỏ padding gây lệch hàng */
+}
+
+/* Radio input */
+.rd-group input[type="radio"] {
+  width: 18px;
+  height: 18px; /* ❌ fix lại cho đều */
+  accent-color: #2563eb;
+  cursor: pointer;
+  margin: 0; /* ❌ tránh lệch baseline */
+}
+
+.rd-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.ad-table button {
   padding: 6px 12px;
   border: none;
   background: #2563eb;
   color: white;
   border-radius: 5px;
   cursor: pointer;
+}
+
+.find input[type="phone"] {
+  padding: 10px 15px;
+  border-radius: 5px;
+}
+
+.ad-table .btn-group {
+  display: flex;    
+  gap: 16px;
+  white-space: nowrap;
+  align-items: center;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  gap: 8px;
+}
+
+.pagination button {
+  padding: 6px 10px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.pagination button.active {
+  background: #2563eb;
+}
+
+.ad-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 90vh; /* full chiều cao màn hình */
+}
+
+/* Table chiếm phần giữa */
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* 🔥 ĐẨY pagination xuống đáy */
+.pagination {
+  margin-top: auto;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.find {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.find input,
+.find select {
+  padding: 10px 14px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: white;
+  outline: none;
+  min-width: 180px;
+  font-size: 14px;
+}
+
+.find input:focus,
+.find select:focus {
+  border-color: #3b82f6;
+}
+
+.find button {
+  padding: 9px 18px;
+  border: none;
+  background-color: aliceblue;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.find button:hover {
+  transform: translateY(-1px);
+}
+
+/* FILTER / SORT OPTION */
+.find select {
+  cursor: pointer;
+}
+
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .find {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .find input,
+  .find select,
+  .find button {
+    width: 100%;
+  }
+}
+
+
+/*-------------------pending-----------*/
+.ad-toolbar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.ad-toolbar input {
+  padding: 12px;
+  width: 280px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #111827;
+  color: white;
+}
+
+.ad-sort-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.ad-status-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ad-tab {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #1e293b;
+  color: white;
+}
+
+.ad-tab.active {
+  background: #2563eb;
+}
+
+.ad-table-box {
+  background: #111827;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ad-table-head {
+  background: #1e293b;
+}
+
+.ad-th,
+.ad-td {
+  padding: 18px;
+  text-align: left;
+}
+
+.ad-tr {
+  border-bottom: 1px solid #1e293b;
+}
+
+.ad-tr:hover {
+  background: #172036;
+}
+
+.ad-status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.ad-status.pending {
+  background: #78350f;
+  color: #fcd34d;
+}
+
+.ad-status.completed {
+  background: #14532d;
+  color: #4ade80;
+}
+
+.ad-status.failed {
+  background: #7f1d1d;
+  color: #f87171;
+}
+
+.ad-accept-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+.ad-reject-btn {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.ad-empty {
+  padding: 30px;
+  text-align: center;
+}
+
+.ad-pagination {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.ad-page-btn {
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #1e293b;
+}
+
+.ad-page-btn.active {
+  background: #2563eb;
 }
