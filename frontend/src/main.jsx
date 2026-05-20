@@ -17,8 +17,6 @@ import QRPage from "./features/payment/QRPage";
 
 import Dashboard from "./features/admin/Dashboard";
 import ManageUsers from "./features/admin/ManageUsers";
-import VerifyRequests from "./features/admin/VerifyRequests";
-import CreateCode from "./features/admin/CreateCode";
 
 import AdminRoute from "./features/admin/AdminRoute";
 import Pending from "./features/admin/Pending";
@@ -60,24 +58,7 @@ function App() {
             </AdminRoute>
           }
         />
-
-        <Route
-          path="/admin/verify"
-          element={
-            <AdminRoute>
-              <VerifyRequests />
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/admin/code"
-          element={
-            <AdminRoute>
-              <CreateCode />
-            </AdminRoute>
-          }
-        />
+        
         <Route 
           path="/admin/pending" 
           element={
