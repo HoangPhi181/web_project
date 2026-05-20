@@ -10,11 +10,9 @@ export default function Sidebar() {
         <p className="menu-title">Trading</p>
         <Link to="/admin">Dashboard</Link>
         <Link to="/admin/users">Manage Users</Link>
-        <Link to="/admin/verify">Verify Requests</Link>
 
         <p className="menu-title">System</p>
-        <Link to="/admin/code">Create Code</Link>
-        <Link to="/admin/pending">Deposit/WithDraw Pending</Link>
+        <Link to="/admin/pending">Deposit Pending</Link>
       </div>
     </div>
   );

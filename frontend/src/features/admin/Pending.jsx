@@ -68,7 +68,7 @@ export default function Pending() {
 
       <div className="ad-main">
         <Header />
-        <h2>Deposit Requests</h2>
+        <h2>Y/C Nạp tiền</h2>
 
         <div className="ad-toolbar">
           <input
@@ -81,21 +81,25 @@ export default function Pending() {
           />
 
           <button className="ad-sort-btn" onClick={() => setSortAsc(!sortAsc)}>
-            Sort {sortAsc ? "↑" : "↓"}
+            Sắp xếp {sortAsc ? "↑" : "↓"}
           </button>
         </div>
 
         <div className="ad-status-tabs">
-          {["PENDING", "COMPLETED", "FAILED"].map(status => (
+          {[
+            { key: "PENDING", label: "Đang chờ" },
+            { key: "COMPLETED", label: "Hoàn thành" },
+            { key: "FAILED", label: "Thất bại" }
+          ].map(status => (
             <button
-              key={status}
-              className={filterStatus === status ? "ad-tab active" : "ad-tab"}
+              key={status.key}
+              className={filterStatus === status.key ? "ad-tab active" : "ad-tab"}
               onClick={() => {
-                setFilterStatus(status);
+                setFilterStatus(status.key);
                 setPage(1);
               }}
             >
-              {status}
+              {status.label}
             </button>
           ))}
         </div>
@@ -105,11 +109,11 @@ export default function Pending() {
             <thead className="ad-table-head">
               <tr>
                 <th className="ad-th">ID</th>
-                <th className="ad-th">Account</th>
-                <th className="ad-th">Amount</th>
-                <th className="ad-th">Reference</th>
-                <th className="ad-th">Status</th>
-                {filterStatus === "PENDING" && <th className="ad-th">Action</th>}
+                <th className="ad-th">Tài khoản</th>
+                <th className="ad-th">Số tiền</th>
+                <th className="ad-th">Mã giao dịch</th>
+                <th className="ad-th">Trạng thái</th>
+                {filterStatus === "PENDING" && <th className="ad-th">Hoạt động</th>}
               </tr>
             </thead>
 
@@ -123,18 +127,22 @@ export default function Pending() {
 
                   <td className="ad-td">
                     <span className={`ad-status ${tx.status.toLowerCase()}`}>
-                      {tx.status}
+                      {{
+                        PENDING: "Đang chờ",
+                        COMPLETED: "Hoàn thành",
+                        FAILED: "Thất bại"
+                      }[tx.status]}
                     </span>
                   </td>
 
                   {filterStatus === "PENDING" && (
                     <td className="ad-td">
                       <button className="ad-accept-btn" onClick={() => confirmDeposit(tx.transaction_id)}>
-                        Accept
+                        Chấp thuận
                       </button>
 
                       <button className="ad-reject-btn" onClick={() => rejectDeposit(tx.transaction_id)}>
-                        Reject
+                        Từ chối
                       </button>
                     </td>
                   )}

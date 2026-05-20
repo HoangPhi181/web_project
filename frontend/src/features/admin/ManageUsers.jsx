@@ -7,14 +7,11 @@ import axiosClient from '../../api/axiosClient';
 export default function ManageUsers() {
 
   const [users, setUsers] = useState([]);
-
   const [searchPhone, setSearchPhone] = useState("");
-
-  // 🔥 SORT + FILTER
   const [sortBy, setSortBy] = useState("id-asc");
   const [filterBy, setFilterBy] = useState("all");
-
   const [currentPage, setCurrentPage] = useState(1);
+
   const usersPerPage = 12;
 
   const fetchUsers = async () => {
@@ -27,7 +24,13 @@ export default function ManageUsers() {
         }
       });
 
-      setUsers(res.data || []);
+      setUsers(
+        Array.isArray(res.data)
+          ? res.data
+          : res.data
+          ? [res.data]
+          : []
+      );
 
     } catch (err) {
       console.error(err);
@@ -53,7 +56,14 @@ export default function ManageUsers() {
         }
       );
 
-      setUsers(res.data ? [res.data] : []);
+      setUsers(
+        Array.isArray(res.data)
+          ? res.data
+          : res.data
+          ? [res.data]
+          : []
+      );
+
       setCurrentPage(1);
 
     } catch (err) {
@@ -132,7 +142,6 @@ export default function ManageUsers() {
     fetchUsers();
   }, []);
 
-  // 🔥 FILTER
   let processedUsers = [...users];
 
   if (filterBy === "active") {
@@ -159,7 +168,6 @@ export default function ManageUsers() {
     );
   }
 
-  // 🔥 SORT
   processedUsers.sort((a, b) => {
     switch (sortBy) {
       case "id-desc":
@@ -176,7 +184,6 @@ export default function ManageUsers() {
     }
   });
 
-  // 🔥 PAGINATION
   const indexOfLast = currentPage * usersPerPage;
   const indexOfFirst = indexOfLast - usersPerPage;
 
@@ -202,20 +209,31 @@ export default function ManageUsers() {
 
         <div className='find'>
 
-          <input
+          {/* <input
             type='phone'
             placeholder='phone'
             value={searchPhone}
             onChange={(e) =>
               setSearchPhone(e.target.value)
             }
+          /> */}
+          <input
+            type='phone'
+            placeholder='phone'
+            value={searchPhone}
+            onChange={(e) => {
+              setSearchPhone(e.target.value);
+
+              if (!e.target.value.trim()) {
+                fetchUsers();
+              }
+            }}
           />
 
           <button onClick={handleSearch}>
             🔍️
           </button>
 
-          {/* FILTER */}
           <select
             value={filterBy}
             onChange={(e) => {
@@ -230,7 +248,6 @@ export default function ManageUsers() {
             <option value="admin">Admin</option>
           </select>
 
-          {/* SORT */}
           <select
             value={sortBy}
             onChange={(e) => {
@@ -261,18 +278,18 @@ export default function ManageUsers() {
 
           <tbody>
 
-            {currentUsers.map(user => (
-              <tr key={user.user_id}>
+            {currentUsers.map((user, index) => (
+              <tr key={user.user_id || index}>
                 <td>{user.user_id}</td>
                 <td>{user.email}</td>
-                <td>01234567xx</td>
+                <td>{user.phone}</td>
 
                 <td>
                   {user.status_account === "blocked"
                     ? "Đã khóa"
                     : "Hoạt động"}
                 </td>
-                
+
                 <td>
                   <div className="btn-group">
 

@@ -1,9 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import '../../styles/Admin.css';
+import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../api/axiosClient';
 
 export default function Dashboard() {
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const navigation = useNavigate();
+
+  useEffect(() => {
+    fetchPendingCount();
+  }, []);
+
+  const fetchPendingCount = async () => {
+    try {
+      const res = await axiosClient.get("/admin/deposits");
+
+      const pending = (res.data || []).filter(item => item.status === "PENDING").length;
+
+      setPendingCount(pending);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <div className="ad-wrapper">
       <Sidebar />
@@ -11,22 +33,23 @@ export default function Dashboard() {
       <div className="ad-main">
         <Header />
 
-        <h2 className="ad-title">Dashboard</h2>
+        <h2 className="ad-title">Bảng điều khiển quản trị</h2>
 
         <div className="ad-grid">
-          <div className="ad-card">
-            <p>Users</p>
+          <div
+            className="ad-card"
+            onClick={() => navigation("/admin/users")}
+          >
+            <p>Người dùng</p>
             <h2>1,240</h2>
           </div>
 
-          <div className="ad-card">
-            <p>Volume (24h)</p>
-            <h2>$450,000</h2>
-          </div>
-
-          <div className="ad-card">
-            <p>Pending Withdraw</p>
-            <h2 className="danger">08</h2>
+          <div
+            className="ad-card"
+            onClick={() => navigation("/admin/pending")}
+          >
+            <p>Y/C Nạp tiền chờ duyệt</p>
+            <h2 className="danger">{pendingCount}</h2>
           </div>
         </div>
 

@@ -9,7 +9,7 @@ export default function AdminRoute({ children }) {
 
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
-    return user?.role === "admin"
+    return user?.role === "admin" || user?.role === "superadmin"
         ? children
         : <Navigate to="/Login_Register" replace />;
 }
