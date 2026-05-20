@@ -72,12 +72,22 @@
 /* Card */
 .ad-card {
   background: #1e293b;
-  padding: 20px;
-  border-radius: 10px;
+  padding: 22px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.ad-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px #3b82f6;
+  background: #273449;
+  border: 2px solid #3b82f6;
 }
 
 .danger {
-  color: red;
+  color: #ef4444;
 }
 
 /* Box */
