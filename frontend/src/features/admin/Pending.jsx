@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axiosClient from "../../api/axiosClient";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import "../../styles/admin.css";
+import "../../styles/Admin.css";
 
 export default function Pending() {
   const [deposits, setDeposits] = useState([]);
