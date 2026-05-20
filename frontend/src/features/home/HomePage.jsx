@@ -2,6 +2,7 @@ import { useState } from 'react'
 import "../../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import { FaShieldAlt, FaCheckCircle, FaHeadset, FaCreditCard } from "react-icons/fa";
+import { SupportSection } from './Support';
 
 function Header() {
   return (
@@ -22,6 +23,7 @@ function Feature({ icon, text }) {
 }
 
 function MainContent({navigate}) {
+  const [showSupport, setShowSupport] = useState(false);
   return (
     <main>
        <h3>Nâng cấp cách bạn giao dịch</h3>
@@ -41,9 +43,12 @@ function MainContent({navigate}) {
         <div className="textGroup_features">
           <Feature icon={<FaShieldAlt />} text="Sàn uy tín" />
           <Feature icon={<FaCheckCircle />} text="Nhiều giấy phép pháp lý" />
-          <Feature icon={<FaHeadset />} text="Hỗ trợ 24/7 bằng tiếng Việt" />
+          <div className="support" onClick={() => setShowSupport(true)}>
+            <Feature icon={<FaHeadset />} text="Hỗ trợ 24/7 bằng tiếng Việt" />
+          </div>
           <Feature icon={<FaCreditCard />} text="Đạt chuẩn PCI DSS" />
         </div>
+        {showSupport && (<SupportSection close={() => setShowSupport(false)} />)}
     </main>
   );
 }
@@ -55,7 +60,14 @@ function TableRow({ icon, name, link, desc, leverage, spread, overnight, type })
           <img src={icon} alt="" />
 
           <div className="symbol-text">
-            <a href={link} className="symbol">{name}</a>
+            <a
+              href={link}
+              className="symbol"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {name}
+            </a>
             <span className="desc">{desc}</span>
           </div>
         </td>
@@ -93,26 +105,38 @@ function Introduction() {
 
         <tbody>
           <TableRow
-            icon="/gold16x16.svg"
-            name="XAU/USD"
-            link="https://www.exness.com/vi/commodities/xauusd"
-            desc="Vàng"
-            leverage="Tùy chỉnh"
-            spread="25.2"
-            overnight="Khả dụng"
-            type="Kim loại"
-          />
-
-          <TableRow
             icon="/btc16x16.svg"
             name="BTC/USD"
-            link="#"
+            link="https://bitcoin.org/en/about/foundation"
             desc="Bitcoin"
-            leverage="1:400"
+            leverage="1:100"
             spread="45.0"
             overnight="Khả dụng"
             type="Tiền điện tử"
           />
+
+          <TableRow
+            icon="/eth.png"
+            name="ETH/USD"
+            link="https://ethereum.org/en/"
+            desc="Ethereum"
+            leverage="1:100"
+            spread="8.5"
+            overnight="Khả dụng"
+            type="Tiền điện tử"
+          />
+
+          <TableRow
+            icon="/xrp.png"
+            name="XRP/USD"
+            link="https://ripple.com/xrp/"
+            desc="XRP"
+            leverage="1:100"
+            spread="1.2"
+            overnight="Khả dụng"
+            type="Tiền điện tử"
+          />
+
         </tbody>
       </table>
     </div>
