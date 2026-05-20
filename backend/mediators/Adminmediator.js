@@ -87,8 +87,8 @@ const Admin = {
       `SELECT t.transaction_id, t.amount, t.reference_code, t.status, t.created_at,
               u.user_id, u.username, u.email, a.account_id
        FROM transactions t
-       JOIN accounts a ON t.account_id = a.account_id
-       JOIN users    u ON a.user_id    = u.user_id
+       JOIN accounts a ON t.account_id=a.account_id
+       JOIN users    u ON a.user_id=u.user_id
        WHERE t.type='DEPOSIT'
        ORDER BY t.created_at ASC`
     );

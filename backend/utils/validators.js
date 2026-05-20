@@ -30,17 +30,23 @@ function validateOrderCreate(body) {
   }
 
   // Validate stop_loss
-  if (!body.stop_loss || isNaN(body.stop_loss)) {
-    errors.stop_loss = 'Stop loss must be a valid number';
-  } else if (parseFloat(body.stop_loss) <= 0) {
-    errors.stop_loss = 'Stop loss must be greater than 0';
+  const hasStopLoss = body.stop_loss !== undefined && body.stop_loss !== null && body.stop_loss !== '';
+  if (hasStopLoss) {
+    if (isNaN(body.stop_loss)) {
+      errors.stop_loss = 'Stop loss must be a valid number';
+    } else if (parseFloat(body.stop_loss) <= 0) {
+      errors.stop_loss = 'Stop loss must be greater than 0';
+    }
   }
 
   // Validate take_profit
-  if (!body.take_profit || isNaN(body.take_profit)) {
-    errors.take_profit = 'Take profit must be a valid number';
-  } else if (parseFloat(body.take_profit) <= 0) {
-    errors.take_profit = 'Take profit must be greater than 0';
+  const hasTakeProfit = body.take_profit !== undefined && body.take_profit !== null && body.take_profit !== '';
+  if (hasTakeProfit) {
+    if (isNaN(body.take_profit)) {
+      errors.take_profit = 'Take profit must be a valid number';
+    } else if (parseFloat(body.take_profit) <= 0) {
+      errors.take_profit = 'Take profit must be greater than 0';
+    }
   }
 
   if (Object.keys(errors).length > 0) {
@@ -51,8 +57,8 @@ function validateOrderCreate(body) {
     product_id: parseInt(body.product_id),
     side: body.side.toUpperCase(),
     volume: parseFloat(body.volume).toFixed(8),
-    stop_loss: parseFloat(body.stop_loss).toFixed(8),
-    take_profit: parseFloat(body.take_profit).toFixed(8)
+    stop_loss: hasStopLoss ? parseFloat(body.stop_loss).toFixed(8) : null,
+    take_profit: hasTakeProfit ? parseFloat(body.take_profit).toFixed(8) : null
   };
 }
 
@@ -92,8 +98,76 @@ function validatePagination(query) {
   };
 }
 
+function validateRegister(body) {
+  const errors = {};
+
+  // Validate username
+  if (!body.username || typeof body.username !== 'string') {
+    errors.username = 'Username is required';
+  } else if (body.username.length < 3 || body.username.length > 50) {
+    errors.username = 'Username must be between 3 and 50 characters';
+  } else if (!/^[a-zA-Z0-9_]+$/.test(body.username)) {
+    errors.username = 'Username can only contain letters, numbers, and underscores';
+  }
+
+  // Validate email
+  if (!body.email || typeof body.email !== 'string') {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    errors.email = 'Invalid email format';
+  }
+
+  // Validate password
+  if (!body.password || typeof body.password !== 'string') {
+    errors.password = 'Password is required';
+  } else if (body.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters long';
+  } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(body.password)) {
+    errors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError('Validation failed', errors);
+  }
+
+  return {
+    username: body.username.trim(),
+    email: body.email.trim().toLowerCase(),
+    password: body.password
+  };
+}
+
+function validateLogin(body) {
+  const errors = {};
+
+  // Validate email
+  if (!body.email || typeof body.email !== 'string') {
+    errors.email = 'Email is required';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    errors.email = 'Invalid email format';
+  }
+
+  // Validate password
+  if (!body.password || typeof body.password !== 'string') {
+    errors.password = 'Password is required';
+  } else if (body.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters long';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError('Validation failed', errors);
+  }
+
+  return {
+    email: body.email.trim().toLowerCase(),
+    password: body.password
+  };
+}
+
 module.exports = {
   validateOrderCreate,
   validateCloseOrder,
-  validatePagination
+  validatePagination,
+  validateRegister,
+  validateLogin
 };

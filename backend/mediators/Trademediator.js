@@ -151,7 +151,7 @@ const Trade = {
   },
 
   // GET /api/orders/balance?type=REAL|DEMO
-  async getBalance(userId, accountType = "DEMO") {
+  async getBalance(userId, accountType = "REAL") {
     return q(
       `SELECT
          a.account_id, a.account_type, a.balance, a.leverage,

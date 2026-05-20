@@ -1,90 +1,146 @@
-const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+// backend/routes/auth.js
+
+const express     = require("express");
+const verifyToken = require("../middleware/authMiddleware");
+const Mediator    = require("../mediators/CentralMediator");
+const { validateRegister, validateLogin } = require("../utils/validators");
 const db = require("../db");
 
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
+// ── Không cần đăng nhập ──────────────────────────────────────────────────────
 
-  const { username, email, password } = req.body;
-
+// POST /api/auth/register
+router.post("/register", async (req, res, next) => {
   try {
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = "INSERT INTO users (username,email,password_hash) VALUES (?,?,?)";
-
-    db.query(sql, [username, email, hashedPassword], (err, result) => {
-
-      if (err) {
-        return res.status(500).json({ message: "User already exists" });
-      }
-
-      // Auto-create account cho user mới
-      const userId = result.insertId;
-      const createAccountSql = "INSERT INTO accounts (user_id, balance, used_margin, leverage) VALUES (?, ?, ?, ?)";
-      
-      db.query(createAccountSql, [userId, 10000, 0, 100], (accountErr) => {
-        if (accountErr) {
-          console.log("Error creating account:", accountErr);
-          // Vẫn return success vì user đã được tạo
-        }
-        res.json({
-          message: "Register success",
-          userId: userId
-        });
-      });
-
-    });
-
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-
+    const { username, email, password } = validateRegister(req.body);
+    res.json(await Mediator.Auth.register(username, email, password));
+  } catch (err) { next(err); }
 });
+
+// POST /api/auth/login
+router.post("/login", async (req, res, next) => {
+  try {
+    const { email, password } = validateLogin(req.body);
+    res.json(await Mediator.Auth.login(email, password));
+  } catch (err) { next(err); }
+});
+
+// POST /api/auth/forgot-password
+// Bước 1: nhập email → nhận OTP 6 số qua email
+router.post("/forgot-password", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes("@"))
+      return res.status(400).json({ message: "Email không hợp lệ" });
+    res.json(await Mediator.Auth.forgotPassword(email.trim().toLowerCase()));
+  } catch (err) { next(err); }
+});
+
+// POST /api/auth/reset-password
+// Bước 2: nhập OTP + mật khẩu mới → đổi mật khẩu
+router.post("/reset-password", async (req, res, next) => {
+  try {
+    const { email, otp, new_password } = req.body;
+    if (!email)        return res.status(400).json({ message: "Thiếu email" });
+    if (!otp)          return res.status(400).json({ message: "Thiếu mã OTP" });
+    if (!new_password) return res.status(400).json({ message: "Thiếu mật khẩu mới" });
+    res.json(await Mediator.Auth.resetPassword(
+      email.trim().toLowerCase(),
+      otp.toString().trim(),
+      new_password
+    ));
+  } catch (err) { next(err); }
+});
+
+// ── Cần đăng nhập ────────────────────────────────────────────────────────────
+
+// POST /api/auth/logout
+router.post("/logout", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await Mediator.Auth.logout(req.userId));
+  } catch (err) { next(err); }
+});
+
+// GET /api/auth/profile
+router.get("/profile", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await Mediator.Auth.getProfile(req.userId));
+  } catch (err) { next(err); }
+});
+
+// PUT /api/auth/profile
+router.put("/profile", verifyToken, async (req, res, next) => {
+  try {
+    res.json(await Mediator.Auth.updateProfile(req.userId, req.body));
+  } catch (err) { next(err); }
+});
+
+/*---------------------------------------------------------------- */
+// Hàm tạo ID ngẫu nhiên 6 ký tự (VD: 4A2B91)
+const generateAccountId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+router.post("/open-account", verifyToken, (req, res) => {
+    const { leverage, typeAccount } = req.body;
+
+    const accountId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // 👇 QUAN TRỌNG: lấy userId từ token
+    const userId = req.userId;
+
+    console.log("USER ID:", userId);
+
+    // ❌ check thiếu typeAccount
+    if (!typeAccount) {
+        return res.status(400).json({ message: "Thiếu typeAccount" });
+    }
+
+    const sql = `
+        INSERT INTO accounts 
+        (account_id, user_id, balance, leverage, typeAccount) 
+        VALUES (?, ?, ?, ?, ?)
+    `;
+
+    db.query(
+        sql,
+        [accountId, userId, 10000, leverage || 100, typeAccount],
+        (err, result) => {
+            if (err) {
+                console.error("Lỗi MySQL:", err.message);
+                return res.status(500).json({
+                    message: "Lỗi DB",
+                    error: err.message,
+                });
+            }
+
+            res.json({
+                message: "Mở tài khoản thành công!",
+                account_id: accountId,
+            });
+        }
+    );
+});
+
+router.get("/account", verifyToken, (req, res) => {
+    const userId = req.userId;
+
+    console.log("GET USER ID:", userId);
+
+    const sql = `
+        SELECT account_id, balance, used_margin, leverage, account_type 
+        FROM accounts 
+        WHERE user_id = ?
+    `;
+
+    db.query(sql, [userId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Lỗi lấy dữ liệu" });
+        }
+
+        console.log("DATA:", results);
+
+        res.json(results);
+    });
+});
+
 
 module.exports = router;
-
-router.post("/login", async (req, res) => {
-
-  const { email, password } = req.body;
-
-  try {
-    const sql = "SELECT * FROM users WHERE email = ?";
-
-    db.query(sql, [email], async (err, results) => {
-
-      if (err) {
-        return res.status(500).json({ message: "Database error" });
-      }
-
-      if (results.length === 0) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      const user = results[0];
-
-      const validPassword = await bcrypt.compare(password, user.password_hash);
-
-      if (!validPassword) {
-        return res.status(401).json({ message: "Wrong password" });
-      }
-
-      const token = jwt.sign(
-        { id: user.user_id },
-        "SECRET_KEY",
-        { expiresIn: "1h" }
-      );
-
-      res.json({
-        message: "Login success",
-        token: token
-      });
-
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-
-});
