@@ -14,7 +14,12 @@ export default function ProfilePage() {
     // lấy avatar từ localStorage khi load lại trang
     useEffect(() => {
         const saved = localStorage.getItem("avatar");
-        if (saved) setAvatar(saved);
+        if (saved) {
+            setUserData(prev => ({
+                ...prev,
+                avatar: saved
+            }));
+        }
     }, []);
 
     // khi chọn ảnh & lưu kết quả 
