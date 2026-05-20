@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
+import AdminSidebar from '../admin/Sidebar';
+import AdminHeader from '../admin/Header';
+import AdminLayout from '../admin/AdminLayout';
 import profileMediator from "../../services/ProfileMediator";
-import { profile } from '../../api/authApi';
+import { profile, update_profile } from '../../api/authApi';
 
 export default function ProfilePage() {
     const navigate = useNavigate();
-
-    // state lưu avatar
-    const [avatar, setAvatar] = useState(null);
 
     // lấy avatar từ localStorage khi load lại trang
     useEffect(() => {
@@ -36,8 +35,10 @@ export default function ProfilePage() {
         user_id: '',
         username: '',
         email: '',
+        phone: '',
         created_at: ''
     });
+    const isAdmin = userData.role === "admin" || userData.role === "superadmin";
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -49,11 +50,9 @@ export default function ProfilePage() {
                 }
 
                 // ĐÚNG: Gọi vào /api/auth/profile
-                const res = await profile({
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const res = await profile();
 
-                console.log("Dữ liệu nhận được:", res.data);
+                // console.log("Dữ liệu nhận được:", res.data);
                 setUserData(res.data); 
             } catch (error) {
                 console.error("Lỗi lấy thông tin user:", error);
@@ -71,12 +70,11 @@ export default function ProfilePage() {
             const token = localStorage.getItem("token");
             if (!token) return alert("Vui lòng đăng nhập lại!");
 
-            const res = await axios.put("http://localhost:5000/api/auth/update-profile", {
+            const res = await update_profile({
                 username: userData.username,
                 email: userData.email,
+                phone: userData.phone,
                 avatar: userData.avatar // Gửi chuỗi Base64 lên Database
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
             alert("Cập nhật thành công!");
@@ -84,6 +82,8 @@ export default function ProfilePage() {
             // navigate("/UserPage");
         } catch (error) {
             console.error(error);
+                console.log(error.response?.data);
+    console.log(error.response?.status);
             alert(error.response?.data?.message || "Cập nhật thất bại");
         }
     };
@@ -168,7 +168,7 @@ export default function ProfilePage() {
                 font-weight: bold;
                 cursor: pointer;
                 transition: all 0.3s ease;
-                text-transform: uppercase;
+                white-space: nowrap;
             }
 
             .user-information .exit {
@@ -203,8 +203,11 @@ export default function ProfilePage() {
             }
         `}
         </style>
-        <Header />
-        <Sidebar />
+        
+        {/* <Header />
+        <Sidebar /> */}
+        {isAdmin ? <AdminHeader /> : <Header />}
+        {isAdmin ? <AdminSidebar /> : <Sidebar />}
         <section className="user-information">
         <h1>Thông tin cá nhân</h1>
         <div className="setAvatar">
@@ -256,7 +259,7 @@ export default function ProfilePage() {
                     placeholder="Phone" 
                     value={userData.phone || ''} 
                     required 
-                    onChange={(e) => setUserData({...userData, email: e.target.value})}
+                    onChange={(e) => setUserData({...userData, phone: e.target.value})}
                 />
 
                 <input 
@@ -267,8 +270,8 @@ export default function ProfilePage() {
                 />
 
                 <div className="button-group">
-                    <button className="exit" onClick={() => profileMediator.redirectHome(navigate)}>Exit</button>
-                    <button className="update" onClick={handleUpdate}>Update</button>
+                    <button className="exit" onClick={() => profileMediator.redirectHome(navigate)}>Thoát</button>
+                    <button className="update" onClick={handleUpdate}>Cập nhật</button>
                 </div>
             </div>
         </div>

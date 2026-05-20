@@ -95,7 +95,7 @@
     margin-left: 4px;
     text-transform: capitalize;
 }
-.account-box .real {
+.account-box .REAL {
     display: inline-block;
     padding: 4px 12px;
     border-radius: 20px;
@@ -104,7 +104,7 @@
     color: white;
     margin-bottom: 12px;
 }
-.account-box .demo {
+.account-box .DEMO {
     display: inline-block;
     padding: 4px 12px;
     border-radius: 20px;

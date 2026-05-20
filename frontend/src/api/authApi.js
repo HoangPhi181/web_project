@@ -25,3 +25,11 @@ export const profile = () => {
         authConfig()
     );
 };
+
+export const update_profile = (data) => {
+    return axiosClient.put(
+        "/auth/profile",
+        data,
+        authConfig()
+    );
+};

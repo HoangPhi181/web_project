@@ -46,7 +46,7 @@ class ProfileMediator {
     redirectHome(navigate) {
         const role = this.getRole();
 
-        if (role === "admin") {
+        if (role === "admin" || role === "superadmin") {
             navigate("/admin");
         } else {
             navigate("/UserPage");

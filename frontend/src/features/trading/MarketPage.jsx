@@ -4,10 +4,18 @@ import Header from "./Header";
 import TradeForm from "../../component/TradeForm";
 import OrdersTable from "../../component/OrdersTable";
 import PriceChart from "../../component/PriceChart";
+import { useLocation } from "react-router-dom";
 import "../../styles/MarketPage.css";
 
 export default function MarketPage() {
-    const mediator = useMarketMediator();
+    const location = useLocation();
+
+        const accountType =
+        location.state?.accountType ||
+        localStorage.getItem("accountType") ||
+        "DEMO";
+
+    const mediator = useMarketMediator(accountType);
 
     if (mediator.pageLoading) {
         return <h2>Loading...</h2>;
@@ -19,6 +27,7 @@ export default function MarketPage() {
                 selectedProduct={mediator.selectedProduct}
                 balance={mediator.balance}
             />
+
             <main className="market-container">
                 <Sidebar
                     products={mediator.products}
@@ -40,6 +49,7 @@ export default function MarketPage() {
                     onPlaceOrder={mediator.handlePlaceOrder}
                 />
             </main>
+
             <OrdersTable
                 orders={mediator.orders}
                 closingId={mediator.closingId}

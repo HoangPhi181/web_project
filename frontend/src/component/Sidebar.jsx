@@ -16,42 +16,42 @@ export default function Sidebar() {
       <nav className="sidebar">
         <ul>
           <li>
-            <button>Trading</button>
+            <button>Giao dịch</button>
             <ul className="items">
               <li
                 onClick={() => handleClick("/UserPage")}
                 className={isActive("/UserPage") ? "active" : ""}
               >
-                My account
+                Tài khoản của tôi
               </li>
               <li
                 onClick={() => handleClick("/PerformancePage")}
                 className={isActive("/PerformancePage") ? "active" : ""}
               >
-                Performance
+                Hiệu suất
               </li>
               <li
                 onClick={() => handleClick("/HistoryPage")}
                 className={isActive("/HistoryPage") ? "active" : ""}
               >
-                History of orders
+                Lịch sử đặt lệnh
               </li>
             </ul>
           </li>
           <li>
-            <button>Payment & wallet</button>
+            <button>Thanh toán</button>
             <ul className="items">
               <li 
                 onClick={() => handleClick("/PaymentPage")}
                 className={isActive("/PaymentPage") ? "active" : ""}
               >
-                Deposit
+                Nạp tiền
               </li>
               <li 
                 onClick={() => handleClick("/WithdrawalPage")}
                 className={isActive("/WithdrawalPage") ? "active" : ""}
               >
-                Withdrawal
+                Rút tiền
               </li>
             </ul>
           </li>

@@ -11,8 +11,8 @@ class UserMediator {
   getHeaders() {
     return {
       headers: {
-        Authorization: `Bearer ${this.getToken()}`,
-      },
+        Authorization: `Bearer ${this.getToken()}`
+      }
     };
   }
 
@@ -22,22 +22,23 @@ class UserMediator {
       this.getHeaders()
     );
 
-    if (Array.isArray(res.data)) return res.data;
-    if (res.data) return [res.data];
-
-    return [];
+    return Array.isArray(res.data)
+      ? res.data
+      : res.data
+      ? [res.data]
+      : [];
   }
 
-  async openAccount(typeAccount) {
-    return await axios.post(
-      `${API}/open-account`,
-      {
-        leverage: 100,
-        typeAccount,
-      },
-      this.getHeaders()
-    );
-  }
+  // async openAccount(account_type) {
+  //   return await axios.post(
+  //     `${API}/open-account`,
+  //     {
+  //       leverage: 100,
+  //       account_type
+  //     },
+  //     this.getHeaders()
+  //   );
+  // }
 
   async fetchBalance(accountId) {
     const res = await getBalance(
@@ -48,7 +49,7 @@ class UserMediator {
 
     return (
       accounts.find(
-        (item) => item.account_id === accountId
+        item => item.account_id === accountId
       )?.equity || 0
     );
   }

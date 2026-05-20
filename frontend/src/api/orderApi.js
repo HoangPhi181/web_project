@@ -1,58 +1,26 @@
-// src/api/orderApi.js
-
 import axiosClient from "./axiosClient";
 
-//--------------- TOKEN HEADER --------------------
-const authConfig = () => {
-    const token = localStorage.getItem("token");
-
-    return {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    };
-};
-
 //-------------- GET OPENING ORDERS ---------------
-export const opening = () => {
-    return axiosClient.get(
-        "/orders/opening",
-        authConfig()
-    );
+export const opening = (config) => {
+    return axiosClient.get("/orders/opening", config);
 };
 
 //---------------- GET BALANCE --------------------
-export const balance = () => {
-    return axiosClient.get(
-        "/orders/balance",
-        authConfig()
-    );
+export const balance = (config) => {
+    return axiosClient.get("/orders/balance", config);
 };
 
-
 //----------------- CREATE ORDER ------------------
-export const create = (payload) => {
-    return axiosClient.post(
-        "/orders/create",
-        payload,
-        authConfig()
-    );
+export const create = (payload, config) => {
+    return axiosClient.post("/orders/create", payload, config);
 };
 
 //------------------ CLOSE ORDER -----------------
-export const close = (orderId, payload) => {
-    return axiosClient.post(
-        `/orders/${orderId}/close`,
-        payload,
-        authConfig()
-    );
+export const close = (orderId, payload, config) => {
+    return axiosClient.post(`/orders/${orderId}/close`, payload, config);
 };
 
 //------------------ HISTORY ORDER ----------------
-export const history = (payload) => {
-    return axiosClient.get(
-        "orders/history/list",
-        payload,
-        authConfig()
-    );
+export const history = (config) => {
+    return axiosClient.get("/orders/history/list", config);
 };

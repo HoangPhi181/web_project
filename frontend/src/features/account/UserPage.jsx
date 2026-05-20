@@ -7,19 +7,19 @@ import UserMediator from "../../services/UserMediator";
 import { AccountBox } from "../../component/AccountBox";
 
 function Dashboard({ onOpenAccount, accounts, loading }) {
-  const [tab, setTab] = useState("real");
-  const filtered = accounts.filter(acc => acc.typeAccount === tab);
+  const [tab, setTab] = useState("REAL");
+  const filtered = accounts.filter(acc => acc.account_type === tab);
 
   return (
     <main className="main-container">
       <section className="unit">
         <div className="account">
-          <h1>My Account</h1>
+          <h1>Tài khoản</h1>
           <button className="addAccount" onClick={onOpenAccount}>+ Mở tài khoản</button>
 
           <div className="btnGroup">
-            <button className={tab === "real" ? "active" : "unActive"} onClick={() => setTab("real")}>Real</button>
-            <button className={tab === "demo" ? "active" : "unActive"} onClick={() => setTab("demo")}>Demo</button>
+            <button className={tab === "REAL" ? "active" : "unActive"} onClick={() => setTab("REAL")}>Real</button>
+            <button className={tab === "DEMO" ? "active" : "unActive"} onClick={() => setTab("DEMO")}>Demo</button>
           </div>
         </div>
       </section>
@@ -62,14 +62,14 @@ function OpenAccount({ setPage, refreshAccounts }) {
           {/* Real Account */}
           <div
             className={`account-option ${
-              radio === "real" ? "selected" : ""
+              radio === "REAL" ? "selected" : ""
             }`}
-            onClick={() => setRadio("real")}
+            onClick={() => setRadio("REAL")}
           >
             <input
               type="radio"
               name="account"
-              checked={radio === "real"}
+              checked={radio === "REAL"}
               readOnly
             />
 
@@ -83,14 +83,14 @@ function OpenAccount({ setPage, refreshAccounts }) {
           {/* Demo Account */}
           <div
             className={`account-option ${
-              radio === "demo" ? "selected" : ""
+              radio === "DEMO" ? "selected" : ""
             }`}
-            onClick={() => setRadio("demo")}
+            onClick={() => setRadio("DEMO")}
           >
             <input
               type="radio"
               name="account"
-              checked={radio === "demo"}
+              checked={radio === "DEMO"}
               readOnly
             />
 

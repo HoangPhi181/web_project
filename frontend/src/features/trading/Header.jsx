@@ -17,14 +17,14 @@ export default function Header({
 
             {/* Hiển thị số dư được format */}
             <div className="balance">
-                {Number(balance || 0).toLocaleString()} USD
+                {Number(balance || 0).toFixed(2).toLocaleString()} USD
             </div>
 
             <button
                 className="deposit"
                 onClick={() => navigate("/PaymentPage")}
             >
-                Deposit
+                Nạp tiền
             </button>
         </header>
     );

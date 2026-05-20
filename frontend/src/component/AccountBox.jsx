@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import UserMediator from "../services/UserMediator";
 
 export function AccountBox({ acc }) {
+  const [balance, setBalance] = useState(0);
   const navigate = useNavigate();
 
   const fetchBalance = async () => {
@@ -23,8 +24,8 @@ export function AccountBox({ acc }) {
 
   return (
     <div className="account-box">
-      <span className={acc.typeAccount === "real" ? "real" : "demo"}>
-        <h3>{acc.typeAccount}</h3>
+      <span className={acc.account_type === "REAL" ? "REAL" : "DEMO"}>
+        <h3>{acc.account_type}</h3>
       </span>
 
       <h3>Tiêu chuẩn</h3>
@@ -33,7 +34,10 @@ export function AccountBox({ acc }) {
       <p>Ký quỹ: {acc.used_margin || 0} USD</p>
       <p>Đòn bẩy: 1:{acc.leverage}</p>
 
-      <button onClick={() => navigate("/MarketPage")}>Open</button>
+      <button onClick={() => {
+          localStorage.setItem("accountType", acc.account_type);
+          navigate("/MarketPage", { state: { accountType: acc.account_type }})
+        }}>Open</button>
     </div>
   );
 }
