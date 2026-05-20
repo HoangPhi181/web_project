@@ -1,0 +1,532 @@
+
+.background-container{
+    background-color: white;
+    color: black;
+}
+/* -------------------logo/title-------------------------------- */
+header h1{
+    font-size: 41px;
+    margin-top: 20px;   
+    margin-left: 12px;   
+}
+
+header h2{
+    margin-top: -30px;
+    margin-left: 12px;    
+    font-weight: 500;
+    font-size: 25px;
+    margin-bottom: 120px;      
+}
+
+main h3 {
+    font-weight: 545;
+    text-align: center;
+    max-width: 30%;
+    margin: 0 auto 16px;       
+    font-size: 350%;
+    line-height: 1.2;
+}
+/*------------------- animation ----------------------------------*/
+.BackGround_container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    perspective: 100px; 
+}
+
+.BackGround_Animation {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+
+    font-size: 2000%;
+    font-weight: bold;
+    color: rgba(0,0,0,0.08);
+
+    transform-style: preserve-3d;
+    animation: rotate3D 40s linear infinite;
+    user-select: none;
+    pointer-events: none;
+}
+
+@keyframes rotate3D {
+    0% {
+        transform: translate(-50%, -50%)
+                    rotateY(0deg)
+                    rotateX(12deg);
+    }
+    50% {
+        transform: translate(-48%, -52%)
+                   rotateY(180deg)
+                   rotateX(18deg);
+    }
+    100% {
+        transform: translate(-50%, -50%)
+                   rotateY(360deg)
+                   rotateX(12deg);
+    }
+}
+/*-------------------------------------------------*/
+
+
+.BackGround_container .p1{
+    text-align: center;
+    max-width: 40%;
+    margin: 0 auto 24px;      
+    font-size: 120%;
+    line-height: 1.4;
+}
+
+.BackGround_container .btnGroup{
+    display: flex;
+    justify-content: center;
+    gap: 8px;              
+    margin-top: 16px;          
+    margin-bottom: 150px;       
+}
+
+.BackGround_container .btnGroup .btnDN{
+    background-color: #ffdf27;
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 15px 20px;
+    font-size: 120%;
+    font-weight: bold;
+}
+
+.BackGround_container .btnGroup .btnDN:hover{
+    background-color: #f0d400;
+}
+
+.BackGround_container .btnGroup .btnDEMO{
+    background-color: rgba(243, 243, 255, 0.7);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 15px 20px;
+    font-size: 120%;
+    font-weight: bold;
+}
+
+.BackGround_container .btnGroup .btnDEMO:hover{
+    background-color: #d9d9d9;
+}
+
+.BackGround_container .textGroup_features{
+    display: flex;
+    justify-content: center;
+    gap: 120px;              
+    text-align: center;
+    font-size: 120%;
+    margin-bottom: 150px;
+    cursor: pointer;
+}
+
+.textGroup_features .support:hover{
+    border-bottom: 2px solid black;
+}
+
+
+/*-------------------Introduction---------------------------------------*/
+.Introduction_container{
+    background-color: #000;
+    color:#fff;
+    padding: 0;
+             
+}
+
+.image-box {
+    margin-top: -100px;
+    overflow: hidden;
+    position: relative;
+}
+
+.image-box img {
+    margin-top: 50px;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-box::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,1) 7%,      
+        rgba(0,0,0,0.3) 30%,
+        rgba(0,0,0,0.2) 50%,
+        rgba(255,255,255,0.15) 90%, 
+        rgba(255,255,255,0.25) 100% 
+    );
+}
+
+
+.Introduction_container h1{          
+    font-weight: 545;
+    font-size: 280%;
+    text-align: center;         
+    margin-bottom: 12px;
+    padding-top: 100px;
+}
+
+.Introduction_container h2{
+    font-size: 120%;
+    font-weight: 545;
+    text-align: center;
+    margin-bottom: 48px;       
+    color:#b5b4b4;
+}
+
+.Introduction_container{
+    display: block;
+    justify-content: center;
+}
+
+.Introduction_container table{
+    margin-left: auto;
+    margin-right: auto;
+    border-collapse: collapse;
+}
+
+.Introduction_container th{
+    font-size: 100%;
+    color: #b5b4b4;
+    padding: 15px 50px;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+.Introduction_container td{
+    text-align: left;
+    padding: 15px 50px;
+    color:#fff;
+    font-size: 100%;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+.Introduction_container td:nth-child(3){
+    color: #4da3ff;
+    font-weight: bold;
+}
+
+.Introduction_container td:last-child{
+    color: #9aa4b2;
+    text-align: left;
+}
+
+.symbol-cell {
+    display: flex !important;        
+    align-items: center;    
+    gap: 10px;             
+}
+
+.symbol-cell img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;         
+}
+
+.symbol-text {
+    display: flex;
+    flex-direction: column; 
+}
+
+.symbol {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.desc {
+    font-size: 13px;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+.Introduction_container a {
+    text-decoration: none;
+    color: #fff;
+    font-weight: 600;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.Introduction_container a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background: #fff;
+    transition: width 0.3s ease;
+}
+
+.Introduction_container a:hover::after {
+    width: 100%;
+}
+
+.Introduction_container a:hover {
+    color: #00d4ff;
+}
+
+/*----------responsive---------------*/
+@media (max-width: 1200px){
+
+    header h1{
+        font-size: 28px;
+    }
+
+    header h2{
+        font-size: 18px;
+        margin-top: -20px;
+        margin-bottom: 60px;
+    }
+
+    main h3{
+        font-size: 28px;
+        max-width: 100%;
+    }
+    
+    .BackGround_Animation{
+        font-size: 120px;
+    }
+
+    .BackGround_container .p1{
+        max-width: 90%;
+        font-size: 16px;
+    }
+
+    .textGroup_features{
+        /* visibility: hidden; */
+        margin-top: -10%;
+    }
+
+    .btnGroup{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .btnGroup button{
+        width: 90%;
+    }
+
+    .image-box{
+        display: none;
+    }
+
+    .Introduction_container{
+        margin-top: -250px;
+    }
+
+    .Introduction_container h1{
+        font-size: 26px;
+    }
+
+    .Introduction_container h2{
+        font-size: 14px;
+    }
+
+    .Introduction_container th,
+    .Introduction_container td{
+        padding: 10px;
+        font-size: 13px;
+    }
+}
+
+/*------------------support-----------------*/
+.support-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 5, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.support-box {
+  background: #ffffff;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 500px;
+  overflow: hidden;
+  border: 2px solid #c8993a;
+}
+
+.support-header {
+  background: linear-gradient(135deg, #c8993a 0%, #f0c84a 50%, #c8993a 100%);
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+  position: relative;
+}
+
+.support-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #fff;
+}
+
+/* Nút đóng */
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.close-btn:hover { background: rgba(255,255,255,0.35); }
+
+/* Body */
+.support-body {
+  padding: 1.75rem 2rem 2rem;
+}
+
+.support-body p {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  text-align: center;
+  margin: 0 0 1.25rem;
+}
+
+/* Badge online */
+.online-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffdf0;
+  border: 1px solid #f0d87a;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: #b8881e;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin: 0 auto 1rem;
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* Divider */
+.support-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+.support-divider::before,
+.support-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #f0c84a;
+  opacity: 0.5;
+}
+.support-divider span {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b8881e;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Contact cards */
+.support-contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.contact-card {
+  background: #fffdf0;
+  border: 1px solid #f0d87a;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.contact-icon {
+  font-size: 20px;
+  color: #c8993a;
+  margin-bottom: 6px;
+}
+
+.contact-card h3 {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b8881e;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.contact-card span {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* CTA button */
+.support-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c8993a 0%, #f0c84a 50%, #c8993a 100%);
+  background-size: 200% auto;
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-position 0.4s, transform 0.15s;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.support-btn:hover {
+  background-position: right center;
+  transform: translateY(-1px);
+}
+.support-btn:active { transform: translateY(0); }

@@ -1,0 +1,212 @@
+.marketPage-container {
+    background-color: #0b141a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: white;
+}
+
+.marketPage-container header {
+    height: 60px;
+    background: #0b141a;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    white-space: nowrap;
+    gap: 30px;
+    border-bottom: 3px solid #444; 
+}
+
+.marketPage-container .logo {
+    margin-top: 15px;
+    color: #e46033;
+    font-weight: bold;
+    font-size: 30px;
+}
+
+.marketPage-container .market-container {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 180px); 
+    overflow: hidden;
+}
+
+.marketPage-container .sidebar {
+    width: 240px;
+    background: #111c22;
+    padding: 10px;
+    border-right: 2px solid #333;
+}
+
+.marketPage-container .sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.marketPage-container .sidebar li {
+    padding: 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: 0.2s;
+    margin-bottom: 5px;
+}
+
+.marketPage-container .sidebar li:hover,
+.marketPage-container .sidebar .active {
+    background: #1b2a32;
+}
+
+/* KHU VỰC BIỂU ĐỒ - QUAN TRỌNG NHẤT */
+.marketPage-container .chart {
+    flex: 1; /* Ép phần này chiếm trọn không gian giữa */
+    background: #0f1a20;
+    position: relative; /* Để PriceChart.jsx bám vào */
+    display: block; /* Bỏ flex center để tránh làm co thẻ con */
+    min-width: 0; /* Fix lỗi flexbox không co giãn trên Chrome */
+}
+
+.marketPage-container .chart-placeholder {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.marketPage-container .trade {
+    width: 240px;
+    background: #1b2a32;
+    padding: 20px;
+    border-left: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.marketPage-container .trade h3 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.marketPage-container .trade label {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+}
+
+.marketPage-container .trade input {
+    background: #0e1a22;
+    border: 1px solid #334155;
+    color: #00e5ff;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    outline: none;
+    margin-bottom: 15px;
+}
+
+.marketPage-container .price {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.marketPage-container .price button {
+    flex: 1;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 25px 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.marketPage-container .sell { background: #ef4444; }
+.marketPage-container .sell:hover { background: #b21d1d; }
+
+.marketPage-container .buy { background: #22c55e; }
+.marketPage-container .buy:hover { background: #16a34a; }
+
+.marketPage-container .deposit {
+    background-color: #334155;
+    color: #fff;
+    padding: 10px 50px;
+    margin-left: auto;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.marketPage-container .deposit:hover {
+    background-color: #475569;
+    border-color: white;
+}
+
+.marketPage-container .orders {
+    height: 150px;
+    background: #0b141a;
+    border-top: 2px solid #333;
+    padding: 10px 20px;
+    overflow-y: auto;
+}
+
+.marketPage-container .orders table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.marketPage-container .orders th {
+    text-align: left;
+    color: #64748b;
+    font-size: 12px;
+    padding: 10px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.marketPage-container .orders td {
+    padding: 12px 10px;
+    font-size: 14px;
+}
+
+.marketPage-container .orders button {
+    background-Color: black;
+    color: white;
+    border-radius: 4px;
+    border: none;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    transition: 0.2s
+}
+
+.marketPage-container .orders button:hover {
+    border: solid 1px white;
+    background-color: #242424;
+}
+
+.marketPage-container .orders .type { color: #ef4444; }
+.marketPage-container .orders .profit { color: #22c55e; font-weight: bold; }
+.marketPage-container .orders .loss { color: #ef4444; font-weight: bold; }
+
+
+@media (max-width: 1024px) {
+    .marketPage-container .market-container {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+    }
+
+    .marketPage-container .sidebar {
+        display: none;
+    }
+
+    .marketPage-container .chart {
+        height: 400px;
+        width: 100%;
+    }
+
+    .marketPage-container .trade {
+        width: 100%;
+        border-left: none;
+        border-top: 2px solid #333;
+    }
+}
