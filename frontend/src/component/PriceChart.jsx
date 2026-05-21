@@ -1,6 +1,7 @@
 import { createChart, ColorType } from "lightweight-charts";
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import axiosClient from "../api/axiosClient";
 
 const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
     const chartContainerRef = useRef();
@@ -86,8 +87,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
             try {
                 const apiSymbol = symbol.replace("/", "-").toUpperCase();
 
-                const res = await axios.get(
-                    `http://localhost:5000/api/market/candles/${apiSymbol}`,
+                const res = await axiosClient.get(`/market/candles/${apiSymbol}`,
                     { params: { timeframe: activeTF, limit: 300 } }
                 );
 
