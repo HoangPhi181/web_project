@@ -11,12 +11,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
 
     const [activeTF, setActiveTF] = useState("1m");
     const [activeOrderId, setActiveOrderId] = useState(null);
-    const [wsStatus, setWsStatus] = useState("connecting"); // 'connecting' | 'connected' | 'disconnected'
-
-    const toTimestamp = dateStr => {
-        const ts = Math.floor(new Date(dateStr).getTime() / 1000);
-        return isNaN(ts) ? null : ts;
-    };
+    const [wsStatus, setWsStatus] = useState("connecting");
 
     const getTimeframeSeconds = tf => {
         switch (tf) {
@@ -33,7 +28,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         return (diff * volume).toFixed(2);
     };
 
-    // ─── Init chart ────────────────────────────────────────────────────────────
+    // ─── Init chart ─────────────────────────────────────────────────────────────
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
@@ -49,7 +44,12 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
             timeScale: {
                 timeVisible: true,
                 rightOffset: 20,
-                barSpacing: 10
+                barSpacing: 10,
+
+                secondsVisible: false,
+            },
+            localization: {
+                timeFormatter: ts => new Date(ts * 1000).toLocaleTimeString(),
             },
             width: chartContainerRef.current.clientWidth,
             height: 600
@@ -81,7 +81,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         };
     }, []);
 
-    // ─── Fetch history ─────────────────────────────────────────────────────────
+    // ─── Fetch history ───────────────────────────────────────────────────────────
     useEffect(() => {
         const fetchHistory = async () => {
             if (!seriesRef.current) return;
@@ -93,21 +93,34 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                     params: { timeframe: activeTF, limit: 300 }
                 });
 
+                const now = Math.floor(Date.now() / 1000);
+
                 const formatted = (res.data?.data || [])
                     .map(item => ({
-                        time: toTimestamp(item.timestamp),
+                        time:  Math.floor(new Date(item.timestamp).getTime() / 1000),
                         open:  Number(item.open_price),
                         high:  Number(item.high_price),
                         low:   Number(item.low_price),
                         close: Number(item.close_price)
                     }))
-                    .filter(i => i.time && !isNaN(i.open))
+                    .filter(i => i.time && !isNaN(i.open) && i.time <= now) // ✅ bỏ candle tương lai
                     .sort((a, b) => a.time - b.time);
-
+                
                 seriesRef.current.setData(formatted);
 
                 if (formatted.length) {
-                    lastCandleRef.current = formatted[formatted.length - 1];
+                    const last    = formatted[formatted.length - 1];
+                    const tfSec   = getTimeframeSeconds(activeTF);
+                    const rounded = Math.floor(Date.now() / 1000 / tfSec) * tfSec;
+
+                    // ✅ Tất cả field đều là primitive number — không có Object
+                    lastCandleRef.current = {
+                        time:  rounded,
+                        open:  Number(last.open),
+                        high:  Number(last.high),
+                        low:   Number(last.low),
+                        close: Number(last.close)
+                    };
                 }
 
                 chartRef.current.timeScale().fitContent();
@@ -119,7 +132,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         fetchHistory();
     }, [symbol, activeTF]);
 
-    // ─── WebSocket realtime ─────────────────────────────────────────────────────
+    // ─── WebSocket realtime ──────────────────────────────────────────────────────
     useEffect(() => {
         const apiSymbol = symbol.replace("/", "-").toUpperCase();
         let socket;
@@ -137,7 +150,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 console.log("✅ WebSocket connected");
                 setWsStatus("connected");
 
-                // Subscribe to the symbol after connection
                 socket.send(JSON.stringify({
                     type: "subscribe",
                     symbols: [apiSymbol]
@@ -147,64 +159,49 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
             socket.onmessage = event => {
                 try {
                     const msg = JSON.parse(event.data);
-                        // console.log("RAW MSG:", msg);
-                        // console.log("apiSymbol:", apiSymbol);
-                        // console.log("match?", msg.symbol === apiSymbol);
-                    // Only handle price/candle update messages
-                    if (msg.type !== "price_update" && msg.type !== "candle_update") return;
 
-                    // Filter by symbol
+                    if (msg.type !== "price_update" && msg.type !== "candle_update") return;
                     if (msg.symbol !== apiSymbol) return;
 
-                    // Resolve price — support both message formats
                     const price = Number(
-                        msg.price          ??   // price_update
-                        msg.candle?.close  ??   // candle_update
-                        msg.data?.close_price   // legacy fallback
+                        msg.price         ??
+                        msg.candle?.close ??
+                        msg.data?.close_price
                     );
-
                     if (!price || isNaN(price)) return;
 
                     if (onPriceChange) onPriceChange(price);
 
-                    // Resolve timestamp
-                    const rawTs =
-                        msg.timestamp          ??
-                        msg.candle?.timestamp  ??
-                        msg.data?.timestamp;
-
-                    const ts = toTimestamp(rawTs);
-                    if (!ts) return;
-
                     const tfSec   = getTimeframeSeconds(activeTF);
-                    const rounded = Math.floor(ts / tfSec) * tfSec;
+                    const rounded = Math.floor(Math.floor(Date.now() / 1000) / tfSec) * tfSec;
                     const last    = lastCandleRef.current;
 
+                    // ✅ Không dùng ...spread — khai báo từng field là number tường minh
                     let candle;
-
                     if (last && last.time === rounded) {
-                        // Update existing candle
-                        candle = {
-                            ...last,
-                            close: price,
-                            high:  Math.max(last.high, price),
-                            low:   Math.min(last.low,  price)
-                        };
-                    } else {
-                        // New candle — open = previous close so there's no gap
                         candle = {
                             time:  rounded,
-                            open:  last?.close ?? price,
+                            open:  Number(last.open),
+                            high:  Math.max(Number(last.high), price),
+                            low:   Math.min(Number(last.low),  price),
+                            close: price
+                        };
+                    } else {
+                        candle = {
+                            time:  rounded,
+                            open:  last ? Number(last.close) : price,
                             high:  price,
                             low:   price,
                             close: price
                         };
                     }
-
+                    
                     if (!last || candle.time >= last.time) {
                         lastCandleRef.current = candle;
+                        //console.log("CANDLE:", JSON.stringify(candle)); 
                         seriesRef.current?.update(candle);
                     }
+
                 } catch (err) {
                     console.error("WS message parse error:", err);
                 }
@@ -218,8 +215,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 if (!isMounted) return;
                 console.warn("🔌 WebSocket disconnected — reconnecting in 3s…");
                 setWsStatus("disconnected");
-
-                // Auto-reconnect after 3 seconds
                 reconnectTimer = setTimeout(connect, 3000);
             };
         };
@@ -233,7 +228,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         };
     }, [symbol, activeTF]);
 
-    // ─── Click on chart to select order ────────────────────────────────────────
+    // ─── Click chọn order ────────────────────────────────────────────────────────
     useEffect(() => {
         if (!chartRef.current || !seriesRef.current) return;
 
@@ -246,7 +241,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
             orders.forEach(order => {
                 const yOrder = seriesRef.current.priceToCoordinate(Number(order.open_price));
                 if (yOrder == null) return;
-
                 const diff = Math.abs(param.point.y - yOrder);
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -261,7 +255,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         return () => chartRef.current?.unsubscribeClick(handleClick);
     }, [orders]);
 
-    // ─── Draw order price lines ─────────────────────────────────────────────────
+    // ─── Vẽ price lines cho orders ───────────────────────────────────────────────
     useEffect(() => {
         if (!seriesRef.current) return;
 
@@ -271,12 +265,11 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         if (!orders.length) return;
 
         orders.forEach(order => {
-            const entry  = Number(order.open_price);
-            const volume = Number(order.volume);
-            const key    = order.id || order.open_price;
+            const entry    = Number(order.open_price);
+            const volume   = Number(order.volume);
+            const key      = order.id || order.open_price;
             const isActive = key === activeOrderId;
 
-            // Entry line
             linesRef.current.push(
                 seriesRef.current.createPriceLine({
                     price: entry,
@@ -288,7 +281,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 })
             );
 
-            // Take Profit line
             if (order.take_profit) {
                 const tp = Number(order.take_profit);
                 linesRef.current.push(
@@ -303,7 +295,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 );
             }
 
-            // Stop Loss line
             if (order.stop_loss) {
                 const sl = Number(order.stop_loss);
                 linesRef.current.push(
@@ -320,7 +311,6 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         });
     }, [orders, activeOrderId]);
 
-    // ─── Status indicator color ─────────────────────────────────────────────────
     const statusColor = {
         connecting:   "#f59e0b",
         connected:    "#22c55e",
@@ -329,13 +319,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
 
     return (
         <div style={{ width: "100%", background: "#131722" }}>
-            {/* Toolbar */}
-            <div style={{
-                padding: "10px",
-                display: "flex",
-                gap: 10,
-                alignItems: "center"
-            }}>
+            <div style={{ padding: "10px", display: "flex", gap: 10, alignItems: "center" }}>
                 {["1m", "5m", "15m", "1h"].map(tf => (
                     <button
                         key={tf}
@@ -353,23 +337,20 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                     </button>
                 ))}
 
-                {/* WebSocket status dot */}
                 <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{
-                        width: 8,
-                        height: 8,
+                        width: 8, height: 8,
                         borderRadius: "50%",
                         background: statusColor
                     }} />
                     <span style={{ color: statusColor, fontSize: 12 }}>
-                        {wsStatus === "connected"    ? "Live"         :
-                         wsStatus === "connecting"   ? "Connecting…"  :
-                                                       "Reconnecting…"}
+                        {wsStatus === "connected"  ? "Live"          :
+                         wsStatus === "connecting" ? "Connecting…"   :
+                                                     "Reconnecting…"}
                     </span>
                 </div>
             </div>
 
-            {/* Chart */}
             <div ref={chartContainerRef} style={{ height: 600 }} />
         </div>
     );

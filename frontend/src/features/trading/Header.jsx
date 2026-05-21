@@ -8,7 +8,11 @@ export default function Header({
 
     return (
         <header>
-            <div className="logo">Nova</div>
+            <div className="logo"
+                onClick={() => navigate("/UserPage")}
+            >
+                Nova
+            </div>
             
             {/* Hiển thị symbol của sản phẩm đang chọn */}
             <div className="symbol">
