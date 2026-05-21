@@ -1,6 +1,5 @@
 import { createChart, ColorType } from "lightweight-charts";
 import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import axiosClient from "../api/axiosClient";
 
 const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
@@ -13,18 +12,23 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
     const [activeTF, setActiveTF] = useState("1m");
     const [activeOrderId, setActiveOrderId] = useState(null);
 
-    const toTimestamp = dateStr => {
+    const toTimestamp = (dateStr) => {
         const ts = Math.floor(new Date(dateStr).getTime() / 1000);
         return isNaN(ts) ? null : ts;
     };
 
-    const getTimeframeSeconds = tf => {
+    const getTimeframeSeconds = (tf) => {
         switch (tf) {
-            case "1m": return 60;
-            case "5m": return 300;
-            case "15m": return 900;
-            case "1h": return 3600;
-            default: return 60;
+            case "1m":
+                return 60;
+            case "5m":
+                return 300;
+            case "15m":
+                return 900;
+            case "1h":
+                return 3600;
+            default:
+                return 60;
         }
     };
 
@@ -33,17 +37,25 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         return (diff * volume).toFixed(2);
     };
 
+    // CREATE CHART
     useEffect(() => {
         if (!chartContainerRef.current) return;
 
         const chart = createChart(chartContainerRef.current, {
             layout: {
-                background: { type: ColorType.Solid, color: "#131722" },
+                background: {
+                    type: ColorType.Solid,
+                    color: "#131722"
+                },
                 textColor: "#d1d4dc"
             },
             grid: {
-                vertLines: { color: "#2f2f2f" },
-                horzLines: { color: "#2f2f2f" }
+                vertLines: {
+                    color: "#2f2f2f"
+                },
+                horzLines: {
+                    color: "#2f2f2f"
+                }
             },
             timeScale: {
                 timeVisible: true,
@@ -72,6 +84,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         };
 
         const resizeObserver = new ResizeObserver(handleResize);
+
         resizeObserver.observe(chartContainerRef.current);
 
         return () => {
@@ -80,6 +93,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         };
     }, []);
 
+    // FETCH HISTORY
     useEffect(() => {
         const fetchHistory = async () => {
             if (!seriesRef.current) return;
@@ -87,97 +101,153 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
             try {
                 const apiSymbol = symbol.replace("/", "-").toUpperCase();
 
-                const res = await axiosClient.get(`/market/candles/${apiSymbol}`,
-                    { params: { timeframe: activeTF, limit: 300 } }
+                const res = await axiosClient.get(
+                    `/market/candles/${apiSymbol}`,
+                    {
+                        params: {
+                            timeframe: activeTF,
+                            limit: 300
+                        }
+                    }
                 );
 
                 const formatted = (res.data?.data || [])
-                    .map(item => ({
+                    .map((item) => ({
                         time: toTimestamp(item.timestamp),
                         open: Number(item.open_price),
                         high: Number(item.high_price),
                         low: Number(item.low_price),
                         close: Number(item.close_price)
                     }))
-                    .filter(i => i.time)
+                    .filter((i) => i.time)
                     .sort((a, b) => a.time - b.time);
 
                 seriesRef.current.setData(formatted);
 
                 if (formatted.length) {
-                    lastCandleRef.current = formatted[formatted.length - 1];
+                    lastCandleRef.current =
+                        formatted[formatted.length - 1];
                 }
 
                 chartRef.current.timeScale().fitContent();
             } catch (err) {
-                console.error("History error:", err.message);
+                console.error("History error:", err);
             }
         };
 
         fetchHistory();
     }, [symbol, activeTF]);
 
+    // REALTIME WEBSOCKET
     useEffect(() => {
-        const socket = new WebSocket("wss://web-trading-project.onrender.com"); /*("ws://localhost:5000");*/
+        const socket = new WebSocket(
+            "wss://web-trading-project.onrender.com"
+        );
+
         const apiSymbol = symbol.replace("/", "-").toUpperCase();
 
-        socket.onmessage = event => {
-            const msg = JSON.parse(event.data);
+        socket.onopen = () => {
+            console.log("✅ WebSocket connected");
 
-            if (msg.symbol !== apiSymbol) return;
+            socket.send(
+                JSON.stringify({
+                    type: "subscribe",
+                    symbols: [apiSymbol]
+                })
+            );
+        };
 
-            const price = Number(msg.price || msg.data?.close_price);
-            if (onPriceChange) onPriceChange(price);
+        socket.onerror = (err) => {
+            console.log("❌ WebSocket error:", err);
+        };
 
-            const ts = toTimestamp(msg.timestamp || msg.data?.timestamp);
-            if (!ts) return;
+        socket.onclose = () => {
+            console.log("🔌 WebSocket disconnected");
+        };
 
-            const tfSec = getTimeframeSeconds(activeTF);
-            const rounded = Math.floor(ts / tfSec) * tfSec;
-            const last = lastCandleRef.current;
+        socket.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
 
-            let candle;
+                // chỉ nhận realtime price
+                if (msg.type !== "price_update") return;
 
-            if (last && last.time === rounded) {
-                candle = {
-                    ...last,
-                    close: price,
-                    high: Math.max(last.high, price),
-                    low: Math.min(last.low, price)
-                };
-            } else {
-                candle = {
-                    time: rounded,
-                    open: price,
-                    high: price,
-                    low: price,
-                    close: price
-                };
-            }
+                if (msg.symbol !== apiSymbol) return;
 
-            if (!last || candle.time >= last.time) {
+                const price = Number(msg.price);
+
+                if (isNaN(price)) return;
+
+                if (onPriceChange) {
+                    onPriceChange(price);
+                }
+
+                const ts = toTimestamp(msg.timestamp);
+
+                if (!ts) return;
+
+                const tfSec = getTimeframeSeconds(activeTF);
+
+                const rounded =
+                    Math.floor(ts / tfSec) * tfSec;
+
+                const last = lastCandleRef.current;
+
+                let candle;
+
+                // update candle hiện tại
+                if (last && last.time === rounded) {
+                    candle = {
+                        ...last,
+                        close: price,
+                        high: Math.max(last.high, price),
+                        low: Math.min(last.low, price)
+                    };
+                } else {
+                    // tạo candle mới
+                    candle = {
+                        time: rounded,
+                        open: last ? last.close : price,
+                        high: price,
+                        low: price,
+                        close: price
+                    };
+                }
+
                 lastCandleRef.current = candle;
+
                 seriesRef.current.update(candle);
+            } catch (err) {
+                console.error("WS parse error:", err);
             }
         };
 
-        return () => socket.close();
-    }, [symbol, activeTF]);
+        return () => {
+            socket.close();
+        };
+    }, [symbol, activeTF, onPriceChange]);
 
+    // CLICK ORDER LINE
     useEffect(() => {
         if (!chartRef.current || !seriesRef.current) return;
 
-        const handleClick = param => {
+        const handleClick = (param) => {
             if (!param?.point) return;
 
             let closest = null;
             let minDiff = Infinity;
 
-            orders.forEach(order => {
-                const yOrder = seriesRef.current.priceToCoordinate(Number(order.open_price));
+            orders.forEach((order) => {
+                const yOrder =
+                    seriesRef.current.priceToCoordinate(
+                        Number(order.open_price)
+                    );
+
                 if (yOrder == null) return;
 
-                const diff = Math.abs(param.point.y - yOrder);
+                const diff = Math.abs(
+                    param.point.y - yOrder
+                );
 
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -185,28 +255,42 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 }
             });
 
-            setActiveOrderId(closest && minDiff < 12 ? closest.id || closest.open_price : null);
+            setActiveOrderId(
+                closest && minDiff < 12
+                    ? closest.id || closest.open_price
+                    : null
+            );
         };
 
         chartRef.current.subscribeClick(handleClick);
 
-        return () => chartRef.current.unsubscribeClick(handleClick);
+        return () => {
+            chartRef.current.unsubscribeClick(handleClick);
+        };
     }, [orders]);
 
+    // ORDER LINES
     useEffect(() => {
         if (!seriesRef.current) return;
 
-        linesRef.current.forEach(line => seriesRef.current.removePriceLine(line));
+        linesRef.current.forEach((line) => {
+            seriesRef.current.removePriceLine(line);
+        });
+
         linesRef.current = [];
 
         if (!orders.length) return;
 
-        orders.forEach(order => {
+        orders.forEach((order) => {
             const entry = Number(order.open_price);
+
             const volume = Number(order.volume);
+
             const key = order.id || order.open_price;
+
             const isActive = key === activeOrderId;
 
+            // ENTRY
             linesRef.current.push(
                 seriesRef.current.createPriceLine({
                     price: entry,
@@ -218,6 +302,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 })
             );
 
+            // TP
             if (order.take_profit) {
                 const tp = Number(order.take_profit);
 
@@ -228,11 +313,17 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                         lineWidth: isActive ? 3 : 1,
                         lineStyle: 2,
                         axisLabelVisible: isActive,
-                        title: `${calcPnL(tp, entry, order.side, volume)} USD`
+                        title: `${calcPnL(
+                            tp,
+                            entry,
+                            order.side,
+                            volume
+                        )} USD`
                     })
                 );
             }
 
+            // SL
             if (order.stop_loss) {
                 const sl = Number(order.stop_loss);
 
@@ -243,7 +334,12 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                         lineWidth: isActive ? 3 : 1,
                         lineStyle: 2,
                         axisLabelVisible: isActive,
-                        title: `${calcPnL(sl, entry, order.side, volume)} USD`
+                        title: `${calcPnL(
+                            sl,
+                            entry,
+                            order.side,
+                            volume
+                        )} USD`
                     })
                 );
             }
@@ -251,14 +347,28 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
     }, [orders, activeOrderId]);
 
     return (
-        <div style={{ width: "100%", background: "#131722" }}>
-            <div style={{ padding: 10, display: "flex", gap: 10 }}>
-                {["1m", "5m", "15m", "1h"].map(tf => (
+        <div
+            style={{
+                width: "100%",
+                background: "#131722"
+            }}
+        >
+            <div
+                style={{
+                    padding: 10,
+                    display: "flex",
+                    gap: 10
+                }}
+            >
+                {["1m", "5m", "15m", "1h"].map((tf) => (
                     <button
                         key={tf}
                         onClick={() => setActiveTF(tf)}
                         style={{
-                            background: activeTF === tf ? "#2962ff" : "#2a2e39",
+                            background:
+                                activeTF === tf
+                                    ? "#2962ff"
+                                    : "#2a2e39",
                             color: "white"
                         }}
                     >
@@ -267,7 +377,10 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
                 ))}
             </div>
 
-            <div ref={chartContainerRef} style={{ height: 600 }} />
+            <div
+                ref={chartContainerRef}
+                style={{ height: 600 }}
+            />
         </div>
     );
 };
