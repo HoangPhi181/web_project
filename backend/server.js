@@ -51,6 +51,11 @@ app.get("/api/health", (req, res) => {
   res.json({ message: "Server is running", timestamp: new Date().toISOString() });
 });
 
+// ROOT ROUTE
+app.get("/", (req, res) => {
+  res.send("Backend trading project is running");
+});
+
 // 404
 app.use((req, res) => {
   res.status(404).json({ message: "Endpoint not found" });
