@@ -1,7 +1,8 @@
 import axios from "axios";
 import { balance as getBalance } from "../api/orderApi";
+import axiosClient from "../api/axiosClient";
 
-const API = "http://localhost:5000/api/auth";
+// const API = "http://localhost:5000/api/auth";
 
 class UserMediator {
   getToken() {
@@ -17,8 +18,8 @@ class UserMediator {
   }
 
   async fetchAccounts() {
-    const res = await axios.get(
-      `${API}/account`,
+    const res = await axiosClient.get(
+      "auth/account",
       this.getHeaders()
     );
 
