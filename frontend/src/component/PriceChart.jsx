@@ -118,7 +118,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
     }, [symbol, activeTF]);
 
     useEffect(() => {
-        const socket = new WebSocket("ws://localhost:5000");
+        const socket = new WebSocket("wss://web-trading-project.onrender.com"); /*("ws://localhost:5000");*/
         const apiSymbol = symbol.replace("/", "-").toUpperCase();
 
         socket.onmessage = event => {
