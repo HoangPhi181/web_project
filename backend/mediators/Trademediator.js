@@ -4,7 +4,7 @@
 //   - Tài khoản DEMO: không được nạp/rút tiền thật, chỉ trade bằng tiền ảo
 //   - Tài khoản DEMO: có thể reset về 10000 bất cứ lúc nào
 
-const { q, transaction } = require("./helpers");
+const { q, transaction } = require("./Helpers");
 
 const Trade = {
 

@@ -5,7 +5,7 @@
 
 const bcrypt        = require("bcrypt");
 const jwt           = require("jsonwebtoken");
-const { q, transaction } = require("./helpers");
+const { q, transaction } = require("./Helpers");
 const { sendOTP }   = require("../utils/mailer");
 
 // ── Helpers OTP (dùng chung với walletMediator) ──────────────────────────────

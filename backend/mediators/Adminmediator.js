@@ -6,7 +6,7 @@
 //   admin      → chỉ nâng user lên admin, KHÔNG hạ admin về user
 //   user       → không có quyền
 
-const { q } = require("./helpers");
+const { q } = require("./Helpers");
 
 const Admin = {
 
