@@ -24,13 +24,17 @@ const nodemailer = require("nodemailer");
 // });
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
-  port: process.env.MAIL_PORT,
+  // port: process.env.MAIL_PORT,
+  port: Number(process.env.MAIL_PORT),
   secure: false,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
+
+console.log("MAIL_HOST:", process.env.MAIL_HOST);
+console.log("MAIL_PORT:", process.env.MAIL_PORT);
 
 // Nội dung email theo từng loại
 // type = "withdraw" → email xác nhận rút tiền
