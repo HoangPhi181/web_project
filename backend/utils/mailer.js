@@ -9,18 +9,14 @@ const nodemailer = require("nodemailer");
 // Kết nối Brevo SMTP
 const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: false,
+  port: 465,
+  secure: true,
   family: 4,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
 });
-
-console.log("MAIL_HOST:", process.env.MAIL_HOST);
-console.log("MAIL_PORT:", process.env.MAIL_PORT);
-console.log("MAIL_USER:", process.env.MAIL_USER);
 
 // Nội dung email theo từng loại
 function buildEmailContent(otp, type) {
