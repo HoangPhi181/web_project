@@ -4,6 +4,7 @@ const express     = require("express");
 const verifyToken = require("../middleware/authMiddleware");
 const Mediator    = require("../mediators/CentralMediator");
 const { validateRegister, validateLogin } = require("../utils/validators");
+const db = require("../db");
 
 const router = express.Router();
 
@@ -74,5 +75,72 @@ router.put("/profile", verifyToken, async (req, res, next) => {
     res.json(await Mediator.Auth.updateProfile(req.userId, req.body));
   } catch (err) { next(err); }
 });
+
+/*---------------------------------------------------------------- */
+// Hàm tạo ID ngẫu nhiên 6 ký tự (VD: 4A2B91)
+const generateAccountId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
+router.post("/open-account", verifyToken, (req, res) => {
+    const { leverage, typeAccount } = req.body;
+
+    const accountId = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // 👇 QUAN TRỌNG: lấy userId từ token
+    const userId = req.userId;
+
+    console.log("USER ID:", userId);
+
+    // ❌ check thiếu typeAccount
+    if (!typeAccount) {
+        return res.status(400).json({ message: "Thiếu typeAccount" });
+    }
+
+    const sql = `
+        INSERT INTO accounts 
+        (account_id, user_id, balance, leverage, typeAccount) 
+        VALUES (?, ?, ?, ?, ?)
+    `;
+
+    db.query(
+        sql,
+        [accountId, userId, 10000, leverage || 100, typeAccount],
+        (err, result) => {
+            if (err) {
+                console.error("Lỗi MySQL:", err.message);
+                return res.status(500).json({
+                    message: "Lỗi DB",
+                    error: err.message,
+                });
+            }
+
+            res.json({
+                message: "Mở tài khoản thành công!",
+                account_id: accountId,
+            });
+        }
+    );
+});
+
+router.get("/account", verifyToken, (req, res) => {
+    const userId = req.userId;
+
+    console.log("GET USER ID:", userId);
+
+    const sql = `
+        SELECT account_id, balance, used_margin, leverage, account_type 
+        FROM accounts 
+        WHERE user_id = ?
+    `;
+
+    db.query(sql, [userId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ message: "Lỗi lấy dữ liệu" });
+        }
+
+        console.log("DATA:", results);
+
+        res.json(results);
+    });
+});
+
 
 module.exports = router;

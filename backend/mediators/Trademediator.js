@@ -4,7 +4,7 @@
 //   - Tài khoản DEMO: không được nạp/rút tiền thật, chỉ trade bằng tiền ảo
 //   - Tài khoản DEMO: có thể reset về 10000 bất cứ lúc nào
 
-const { q, transaction } = require("./helpers");
+const { q, transaction } = require("./Helpers");
 
 const Trade = {
 
@@ -151,7 +151,7 @@ const Trade = {
   },
 
   // GET /api/orders/balance?type=REAL|DEMO
-  async getBalance(userId, accountType = "DEMO") {
+  async getBalance(userId, accountType = "REAL") {
     return q(
       `SELECT
          a.account_id, a.account_type, a.balance, a.leverage,

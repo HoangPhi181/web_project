@@ -5,7 +5,7 @@
 
 const bcrypt        = require("bcrypt");
 const jwt           = require("jsonwebtoken");
-const { q, transaction } = require("./helpers");
+const { q, transaction } = require("./Helpers");
 const { sendOTP }   = require("../utils/mailer");
 
 // ── Helpers OTP (dùng chung với walletMediator) ──────────────────────────────
@@ -70,7 +70,7 @@ const Auth = {
     await q("UPDATE users SET is_online=TRUE WHERE user_id=?", [user.user_id]);
 
     const token = jwt.sign(
-      { id: user.user_id, role: user.role },
+      { userId: user.user_id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
@@ -86,7 +86,7 @@ const Auth = {
   // GET /api/auth/profile
   async getProfile(userId) {
     const [user] = await q(
-      "SELECT user_id, username, email, role, created_at FROM users WHERE user_id=?",
+      "SELECT user_id, username, email, phone, role, avatar, created_at FROM users WHERE user_id=?",
       [userId]
     );
     if (!user) throw new Error("Không tìm thấy user");
@@ -94,12 +94,12 @@ const Auth = {
   },
 
   // PUT /api/auth/profile
-  async updateProfile(userId, { username, email }) {
+  async updateProfile(userId, { username, email, phone, avatar }) {
     if (!username?.trim()) throw new Error("Username không được trống");
     if (!email?.trim())    throw new Error("Email không được trống");
     const result = await q(
-      "UPDATE users SET username=?, email=? WHERE user_id=?",
-      [username.trim(), email.trim(), userId]
+      "UPDATE users SET username=?, email=?, phone=?, avatar=? WHERE user_id=?",
+      [username.trim(), email.trim(), phone, avatar, userId]
     );
     if (result.affectedRows === 0) throw new Error("Không tìm thấy user");
     return { message: "Cập nhật thành công" };

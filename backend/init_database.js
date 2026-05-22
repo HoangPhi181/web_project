@@ -6,7 +6,7 @@ const path = require("path");
 const connection = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "311127",
+  password: "123456",
   port: 3306
 });
 
@@ -15,7 +15,7 @@ connection.connect((err) => {
     console.error("❌ Lỗi kết nối MySQL:", err.message);
     console.log("\n💡 Kiểm tra:");
     console.log("   1. MySQL server đang chạy không?");
-    console.log("   2. Username/password đúng không? (hiện tại: root/311127)");
+    console.log("   2. Username/password đúng không? (hiện tại: root/123456)");
     process.exit(1);
   }
 

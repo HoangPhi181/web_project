@@ -4,8 +4,8 @@
 //   - DEMO có lịch sử lệnh riêng (từ bảng orders)
 //   - DEMO KHÔNG có transactions (nạp/rút) — chỉ REAL mới có
 
-const { q, transaction }              = require("./helpers");
-const { saveOTP, checkOTP, clearOTP } = require("./authMediator");
+const { q, transaction }              = require("./Helpers");
+const { saveOTP, checkOTP, clearOTP } = require("./Authmediator");
 const { sendOTP }                     = require("../utils/mailer");
 
 const Wallet = {

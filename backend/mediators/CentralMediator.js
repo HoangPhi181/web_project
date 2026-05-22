@@ -18,9 +18,9 @@
 //   await Mediator.Wallet.deposit(userId, amount)
 //   await Mediator.Admin.blockUser(adminId, userId)
 
-const { Auth }   = require("./authMediator");
-const { Trade }  = require("./tradeMediator");
-const { Wallet } = require("./walletMediator");
-const { Admin }  = require("./adminMediator");
+const { Auth }   = require("./Authmediator");
+const { Trade }  = require("./Trademediator");
+const { Wallet } = require("./Walletmediator");
+const { Admin }  = require("./Adminmediator");
 
 module.exports = { Auth, Trade, Wallet, Admin };

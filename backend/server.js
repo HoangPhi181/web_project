@@ -29,7 +29,15 @@ const { setWebSocketBroadcasters } = require("./utils/binanceAPI");
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
+
+app.use(bodyParser.json({
+  limit: "50mb"
+}));
+
+app.use(bodyParser.urlencoded({
+  limit: "50mb",
+  extended: true
+}));
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use("/api/auth",         authRoutes);
@@ -41,6 +49,11 @@ app.use("/api/transactions", transactionRoutes);
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ message: "Server is running", timestamp: new Date().toISOString() });
+});
+
+// ROOT ROUTE
+app.get("/", (req, res) => {
+  res.send("Backend trading project is running");
 });
 
 // 404

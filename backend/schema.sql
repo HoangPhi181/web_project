@@ -5,7 +5,7 @@
 --   1 tài khoản DEMO — balance = 10000 (tiền ảo, luyện tập)
 -- Tất cả bảng orders, transactions đều JOIN qua account_id
 -- → Không cần sửa gì thêm ở orders và transactions
-
+DROP DATABASE IF EXISTS trading_exchange;
 CREATE DATABASE IF NOT EXISTS trading_exchange;
 USE trading_exchange;
 
@@ -20,13 +20,15 @@ CREATE TABLE users (
   password_hash       VARCHAR(255) NOT NULL,
   phone               VARCHAR(20)  UNIQUE,
   role                ENUM('user','admin','superadmin')     DEFAULT 'user',
+  avatar			  LONGTEXT,
   status_account      ENUM('active','blocked') DEFAULT 'active',
   is_online           BOOLEAN                  DEFAULT FALSE,
   verify_code         VARCHAR(6)   NULL,
   verify_code_expires TIMESTAMP    NULL,
   created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+ALTER TABLE users
+MODIFY avatar LONGTEXT;
 -- ============================================================
 -- ACCOUNTS
 -- Mỗi user có đúng 2 tài khoản:
@@ -45,10 +47,10 @@ CREATE TABLE accounts (
   leverage     INT           DEFAULT 100   CHECK (leverage > 0),
   created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (user_id) REFERENCES users(user_id),
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
 
   -- Mỗi user chỉ có đúng 1 REAL và 1 DEMO
-  UNIQUE KEY uq_user_account_type (user_id, account_type)
+--   UNIQUE KEY uq_user_account_type (user_id, account_type)
 );
 
 -- ============================================================
@@ -138,6 +140,9 @@ CREATE INDEX idx_accounts_type      ON accounts(user_id, account_type);
 -- ============================================================
 INSERT INTO products (symbol, name, category, current_price, is_active) VALUES
 ('BTC-USD', 'Bitcoin', 'crypto', 45000.00000000, TRUE);
+
+INSERT INTO users (username, email, password_hash, role) 
+VALUES ('SuperAdmin', 'spadmin@gmail.com', '$2b$10$t7gpWmUze/qOQ/wVwUrOmu1ytx15OXyVHzFJ8ptnhv69Z6BBc9plC', 'superadmin');
 
 -- ============================================================
 -- NẾU DATABASE ĐÃ TỒN TẠI — chạy ALTER này

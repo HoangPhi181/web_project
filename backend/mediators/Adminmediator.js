@@ -6,7 +6,7 @@
 //   admin      → chỉ nâng user lên admin, KHÔNG hạ admin về user
 //   user       → không có quyền
 
-const { q } = require("./helpers");
+const { q } = require("./Helpers");
 
 const Admin = {
 
@@ -84,12 +84,12 @@ const Admin = {
   // GET /api/admin/deposits
   async getPendingDeposits() {
     return q(
-      `SELECT t.transaction_id, t.amount, t.reference_code, t.created_at,
+      `SELECT t.transaction_id, t.amount, t.reference_code, t.status, t.created_at,
               u.user_id, u.username, u.email, a.account_id
        FROM transactions t
-       JOIN accounts a ON t.account_id = a.account_id
-       JOIN users    u ON a.user_id    = u.user_id
-       WHERE t.type='DEPOSIT' AND t.status='PENDING'
+       JOIN accounts a ON t.account_id=a.account_id
+       JOIN users    u ON a.user_id=u.user_id
+       WHERE t.type='DEPOSIT'
        ORDER BY t.created_at ASC`
     );
   },

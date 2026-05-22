@@ -18,7 +18,7 @@ function extractAndVerify(req, res, callback) {
     if (err)
       return res.status(401).json({ message: "Unauthorized" });
 
-    req.userId   = decoded.id;
+    req.userId   = decoded.userId;
     req.userRole = decoded.role;
     callback(decoded);
   });
