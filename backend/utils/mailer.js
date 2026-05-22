@@ -11,6 +11,7 @@ const transporter = nodemailer.createTransport({
   host: "smtp-relay.brevo.com",
   port: 587,
   secure: false,
+  family: 4,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
@@ -54,7 +55,7 @@ async function sendOTP(toEmail, otp, type = "withdraw") {
     const content = buildEmailContent(otp, type);
 
     const info = await transporter.sendMail({
-      from: `"Trading Nova" <yourgmail@gmail.com>`,
+      from: `"Trading Nova" <ac2657001@smtp-brevo.com>`,
       to: toEmail,
       subject: content.subject,
       html: `
