@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 
 export default function Header({
-    selectedProduct, // Truyền object sản phẩm đã chọn
-    balance,         // Truyền số dư
+    selectedProduct,
+    balance,
 }) {
-    const navigate = useNavigate(); // Khai báo hook để chuyển trang
+    const navigate = useNavigate(); 
 
     return (
         <header>
@@ -19,9 +19,11 @@ export default function Header({
                 {selectedProduct?.symbol || ""}
             </div>
 
-            {/* Hiển thị số dư được format */}
+            {/* Balance */}
             <div className="balance">
-                {Number(balance || 0).toFixed(2).toLocaleString()} USD
+                {balance != null
+                    ? Number(balance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : "0.00"} USD
             </div>
 
             <button

@@ -25,7 +25,7 @@ export default function MarketPage() {
         <div className="marketPage-container">
             <Header
                 selectedProduct={mediator.selectedProduct}
-                balance={mediator.balance}
+                balance={mediator.equity}
             />
 
             <main className="market-container">
@@ -47,6 +47,8 @@ export default function MarketPage() {
                     orderLoading={mediator.orderLoading}
                     onInputChange={mediator.handleInputChange}
                     onPlaceOrder={mediator.handlePlaceOrder}
+                    balance={mediator.balance}
+                    usedMargin={mediator.usedMargin}
                 />
             </main>
 

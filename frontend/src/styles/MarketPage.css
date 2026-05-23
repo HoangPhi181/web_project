@@ -56,13 +56,13 @@
     background: #1b2a32;
 }
 
-/* KHU VỰC BIỂU ĐỒ - QUAN TRỌNG NHẤT */
+/* KHU VỰC BIỂU ĐỒ */
 .marketPage-container .chart {
-    flex: 1; /* Ép phần này chiếm trọn không gian giữa */
+    flex: 1; 
     background: #0f1a20;
-    position: relative; /* Để PriceChart.jsx bám vào */
-    display: block; /* Bỏ flex center để tránh làm co thẻ con */
-    min-width: 0; /* Fix lỗi flexbox không co giãn trên Chrome */
+    position: relative; 
+    display: block; 
+    min-width: 0; 
 }
 
 .marketPage-container .chart-placeholder {
@@ -210,3 +210,30 @@
         border-top: 2px solid #333;
     }
 }
+/* ── TradeForm ── */
+.marketPage-container .sell.side-active { box-shadow: 0 0 0 3px #ef4444; transform: scale(1.03); }
+.marketPage-container .buy.side-active  { box-shadow: 0 0 0 3px #22c55e; transform: scale(1.03); }
+.marketPage-container .price button     { transition: all 0.15s ease; }
+
+.marketPage-container .place-order-btn {
+    width: 100%; padding: 14px; margin-top: 12px;
+    border: none; border-radius: 6px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s; background: #334155; color: #64748b;
+}
+.marketPage-container .place-order-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.marketPage-container .place-order-btn.buy  { background: linear-gradient(135deg,#16a34a,#22c55e); color: white; }
+.marketPage-container .place-order-btn.sell { background: linear-gradient(135deg,#b91c1c,#ef4444); color: white; }
+.marketPage-container .place-order-btn.buy:hover:not(:disabled)  { opacity: 0.88; }
+.marketPage-container .place-order-btn.sell:hover:not(:disabled) { opacity: 0.88; }
+
+.marketPage-container .margin-info {
+    margin-top: 12px; background: #0a1628;
+    border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px; font-size: 12px;
+}
+.marketPage-container .margin-title {
+    color: #475569; font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+}
+.marketPage-container .margin-row {
+    display: flex; justify-content: space-between; margin-bottom: 5px; color: #94a3b8;
+}
+.marketPage-container .margin-row span:last-child { color: #e2e8f0; }

@@ -3,24 +3,24 @@ import { useNavigate } from "react-router-dom";
 import UserMediator from "../services/UserMediator";
 
 export function AccountBox({ acc }) {
-  const [balance, setBalance] = useState(0);
+  const [equity, setEquity] = useState(null);
   const navigate = useNavigate();
 
-  const fetchBalance = async () => {
+  const fetchEquity = async () => {
     try {
-      const equity = await UserMediator.fetchBalance(acc.account_id);
-      setBalance(equity);
+      const eq = await UserMediator.fetchBalance(acc.account_id, acc.account_type);
+      setEquity(eq);
     } catch (err) {
       console.error(err);
     }
   };
 
   useEffect(() => {
-    fetchBalance();
-    //cập nhật giá sau 60s
-    const interval = setInterval(fetchBalance, 60000);
+    fetchEquity();
+    // Cập nhật mỗi 1s → số dư thay đổi khi lệnh lời/lỗ
+    const interval = setInterval(fetchEquity, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [acc.account_id]);
 
   return (
     <div className="account-box">
@@ -30,14 +30,20 @@ export function AccountBox({ acc }) {
 
       <h3>Tiêu chuẩn</h3>
       <p>Mã số: #{acc.account_id}</p>
-      <p>Số dư: <strong>{parseFloat(acc.balance).toFixed(2)} USD</strong></p>
-      <p>Ký quỹ: {acc.used_margin || 0} USD</p>
+      <p>
+        Số dư:{" "}
+        <strong>
+          {equity !== null
+            ? `${parseFloat(equity).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`
+            : "..."}
+        </strong>
+      </p>
       <p>Đòn bẩy: 1:{acc.leverage}</p>
 
       <button onClick={() => {
-          localStorage.setItem("accountType", acc.account_type);
-          navigate("/MarketPage", { state: { accountType: acc.account_type }})
-        }}>Open</button>
+        localStorage.setItem("accountType", acc.account_type);
+        navigate("/MarketPage", { state: { accountType: acc.account_type } });
+      }}>Open</button>
     </div>
   );
 }

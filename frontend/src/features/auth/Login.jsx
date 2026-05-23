@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { login } from '../../api/authApi';
-import { jwtDecode } from "jwt-decode";
 
 function Login({ onSwitch }) {
     const navigate = useNavigate();
@@ -11,13 +10,19 @@ function Login({ onSwitch }) {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const res = await login({ email, password });
+            const res   = await login({ email, password });
             const token = res.data.token;
-            const decoded = jwtDecode(token);
-            localStorage.setItem("token", token);
-            localStorage.setItem("user", JSON.stringify(decoded));
+
+            // Decode JWT không cần thư viện jwt-decode
+            const payload = JSON.parse(atob(token.split(".")[1]));
+
+            localStorage.setItem("token",  token);
+            localStorage.setItem("userId", payload.id || payload.userId);
+            localStorage.setItem("user",   JSON.stringify(payload));
+
             alert("Đăng nhập thành công!");
-            if (decoded.role === "admin" || decoded.role === "superadmin") {
+
+            if (payload.role === "admin" || payload.role === "superadmin") {
                 navigate("/admin");
             } else {
                 navigate("/UserPage");
