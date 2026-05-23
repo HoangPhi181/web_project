@@ -49,12 +49,14 @@ const Trade = {
       // Tính margin
       const margin = (parseFloat(product.current_price) * parseFloat(volume)) / (account.leverage || 100);
 
-      if (parseFloat(account.balance) < margin)
-        throw new Error(`Không đủ số dư ${accountType}. Cần: ${margin.toFixed(2)}, Có: ${account.balance}`);
+      // Kiểm tra free margin (balance - used_margin), không trừ balance
+      const freeMargin = parseFloat(account.balance) - parseFloat(account.used_margin);
+      if (freeMargin < margin)
+        throw new Error(`Không đủ số dư ${accountType}. Cần ký quỹ: ${margin.toFixed(2)}, Khả dụng: ${freeMargin.toFixed(2)}`);
 
       await run(
-        "UPDATE accounts SET balance=balance-?, used_margin=used_margin+? WHERE account_id=?",
-        [margin, margin, account.account_id]
+        "UPDATE accounts SET used_margin=used_margin+? WHERE account_id=?",
+        [margin, account.account_id]
       );
 
       const { insertId: orderId } = await run(
@@ -110,9 +112,9 @@ const Trade = {
       const margin = (parseFloat(order.open_price) * parseFloat(order.volume)) / (order.leverage || 100);
 
       await run(
-        `UPDATE accounts SET balance=balance+?+?, used_margin=GREATEST(used_margin-?,0)
+        `UPDATE accounts SET balance=balance+?, used_margin=GREATEST(used_margin-?,0)
          WHERE account_id=?`,
-        [margin, pnl, margin, order.account_id]
+        [pnl, margin, order.account_id]
       );
       await run(
         "UPDATE orders SET status='CLOSED', close_price=?, profit_loss=?, closed_at=NOW() WHERE order_id=?",
@@ -155,6 +157,8 @@ const Trade = {
     return q(
       `SELECT
          a.account_id, a.account_type, a.balance, a.leverage,
+         a.used_margin,
+         a.balance - a.used_margin AS free_margin,
          COALESCE(SUM(
            CASE
              WHEN o.side='BUY'  THEN (p.current_price - o.open_price) * o.volume
