@@ -1,12 +1,16 @@
 import { useEffect } from "react";
 
 /**
- * Hook này gửi "identify" qua WebSocket ngay khi user đã đăng nhập
+ * Hook gửi "identify" qua WebSocket ngay khi user đã đăng nhập.
  */
 export default function useOnlineStatus() {
     useEffect(() => {
-        const userId = localStorage.getItem("userId");
-        if (!userId) return; // Chưa đăng nhập → không cần kết nối
+        const rawId = localStorage.getItem("userId");
+
+        if (!rawId || rawId === "null" || rawId === "undefined") return;
+
+        const userId = parseInt(rawId, 10);
+        if (isNaN(userId)) return; 
 
         const wsUrl =
             (typeof import.meta !== "undefined" && import.meta.env?.VITE_WS_URL) ||
@@ -15,11 +19,18 @@ export default function useOnlineStatus() {
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
-            ws.send(JSON.stringify({ type: "identify", userId: parseInt(userId) }));
+            ws.send(JSON.stringify({ type: "identify", userId }));
         };
 
-        ws.onerror = () => {};
+        ws.onerror = (err) => {
+            console.warn("WebSocket lỗi (online status):", err);
+        };
 
-        return () => ws.close();
-    }, []); 
+        // Gửi lại identify nếu kết nối bị gián đoạn rồi mở lại
+        ws.onclose = () => {};
+
+        return () => {
+            try { ws.close(); } catch (_) {}
+        };
+    }, []);
 }
