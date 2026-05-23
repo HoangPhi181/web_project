@@ -41,18 +41,18 @@ class UserMediator {
   //   );
   // }
 
-  async fetchBalance(accountId) {
-    const res = await getBalance(
-      this.getHeaders()
-    );
+  async fetchBalance(accountId, accountType = "REAL") {
+    const res = await getBalance({
+      ...this.getHeaders(),
+      params: { type: accountType }
+    });
 
-    const accounts = res.data.data || [];
+    // getBalance trả về mảng, tìm đúng account
+    const list = res.data?.data || (Array.isArray(res.data) ? res.data : [res.data]);
+    const acc  = list.find(item => item.account_id === accountId) || list[0];
 
-    return (
-      accounts.find(
-        item => item.account_id === accountId
-      )?.equity || 0
-    );
+    // equity = balance + floating PnL (thay đổi theo lời/lỗ, không bị trừ margin)
+    return parseFloat(acc?.equity ?? acc?.balance ?? 0);
   }
 }
 
