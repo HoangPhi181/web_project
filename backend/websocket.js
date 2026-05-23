@@ -1,175 +1,166 @@
 // backend/websocket.js
-// WebSocket server for real-time price updates
-
 const WebSocket = require('ws');
-const db = require('./db');
+const db        = require('./db');
 
 let wss = null;
-const clients = new Set();
+const clients       = new Set();
+const userSocketMap = new Map();
+const onlineUsers   = new Set();
 
-/**
- * Broadcast a price update to all connected clients.
- * Format is aligned with what PriceChart.jsx expects.
- *
- * @param {string} symbol    - e.g. "BTC-USD"
- * @param {number} price     - current price
- * @param {string} timestamp - ISO 8601 string
- */
+//  Broadcast 
+
+function broadcastAll(payload) {
+    const msg = JSON.stringify(payload);
+    clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); });
+}
+
 function broadcastPriceUpdate(symbol, price, timestamp) {
     const parsedPrice = parseFloat(price);
-
-    const message = JSON.stringify({
-        type:      'price_update',
-        symbol:    symbol,            // must match frontend apiSymbol: "BTC-USD"
-        price:     parsedPrice,
-        timestamp: timestamp,
-        // Legacy fallback block so older clients still work
-        data: {
-            close_price: parsedPrice,
-            timestamp:   timestamp
-        }
+    const msg = JSON.stringify({
+        type: 'price_update', symbol, price: parsedPrice, timestamp,
+        data: { close_price: parsedPrice, timestamp }
     });
-
-    clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
+    clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); });
 }
 
-/**
- * Broadcast a full OHLCV candle update.
- * Frontend reads msg.candle.close and msg.candle.timestamp.
- *
- * @param {string} symbol
- * @param {{ open, high, low, close, timestamp }} candle
- */
 function broadcastCandleUpdate(symbol, candle) {
-    const message = JSON.stringify({
-        type:   'candle_update',
-        symbol: symbol,
+    const msg = JSON.stringify({
+        type: 'candle_update', symbol,
         candle: {
-            open:      parseFloat(candle.open),
-            high:      parseFloat(candle.high),
-            low:       parseFloat(candle.low),
-            close:     parseFloat(candle.close),
+            open: parseFloat(candle.open), high: parseFloat(candle.high),
+            low:  parseFloat(candle.low),  close: parseFloat(candle.close),
             timestamp: candle.timestamp
         },
-        // Also expose close/timestamp at the top level so both message types
-        // can be handled with the same field resolution in the frontend
-        price:     parseFloat(candle.close),
-        timestamp: candle.timestamp
+        price: parseFloat(candle.close), timestamp: candle.timestamp
     });
-
-    clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
+    clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(msg); });
 }
 
-/**
- * Attach the WebSocket server to an existing HTTP server.
- * Call this once from your main server file, e.g.:
- *   const { startWebSocketServer, startPriceBroadcast } = require('./websocket');
- *   startWebSocketServer(server);
- *   startPriceBroadcast();
- *
- * @param {import('http').Server} server
- */
+function broadcastActiveCount() {
+    broadcastAll({ type: 'active_users', count: onlineUsers.size, timestamp: new Date().toISOString() });
+}
+
+//  Active Users 
+
+async function registerUser(ws, userId) {
+    ws._userId = userId;
+    if (!userSocketMap.has(userId)) userSocketMap.set(userId, new Set());
+    userSocketMap.get(userId).add(ws);
+
+    if (!onlineUsers.has(userId)) {
+        onlineUsers.add(userId);
+        try { await db.promise().query('UPDATE users SET is_online=TRUE WHERE user_id=?', [userId]); } catch (_) {}
+    }
+    broadcastActiveCount();
+}
+
+async function unregisterUser(ws) {
+    const userId = ws._userId;
+    if (!userId) return;
+    const sockets = userSocketMap.get(userId);
+    if (sockets) {
+        sockets.delete(ws);
+        if (sockets.size === 0) {
+            userSocketMap.delete(userId);
+            onlineUsers.delete(userId);
+            try { await db.promise().query('UPDATE users SET is_online=FALSE WHERE user_id=?', [userId]); } catch (_) {}
+        }
+    }
+    broadcastActiveCount();
+}
+
+// Server
+
 function startWebSocketServer(server) {
     wss = new WebSocket.Server({ server });
 
     wss.on('connection', (ws, req) => {
         const ip = req.socket.remoteAddress;
-        console.log(`🔌 New WebSocket client connected: ${ip}`);
+        console.log(`🔌 New WebSocket client: ${ip}`);
         clients.add(ws);
 
-        // Send welcome / handshake
         ws.send(JSON.stringify({
-            type:      'connected',
-            message:   'Connected to trading platform WebSocket',
+            type: 'connected',
+            message: 'Connected to Nova Trading WebSocket',
+            active_users: onlineUsers.size,
             timestamp: new Date().toISOString()
         }));
 
-        ws.on('message', rawMessage => {
+        ws.on('message', async (raw) => {
             try {
-                const data = JSON.parse(rawMessage.toString());
-                console.log('📨 Received from client:', data);
+                const data = JSON.parse(raw.toString());
+
+                if (data.type === 'identify') {
+                    // Gửi sau khi đăng nhập — đánh dấu online
+                    if (data.userId) await registerUser(ws, data.userId);
+                }
 
                 if (data.type === 'subscribe') {
-                    // Acknowledge subscription request
                     ws.send(JSON.stringify({
-                        type:    'subscribed',
-                        symbols: data.symbols || []
+                        type: 'subscribed',
+                        symbols: data.symbols || ['BTC-USD']
+                    }));
+                }
+
+                if (data.type === 'get_active_users') {
+                    ws.send(JSON.stringify({
+                        type: 'active_users',
+                        count: onlineUsers.size,
+                        timestamp: new Date().toISOString()
                     }));
                 }
             } catch (err) {
-                console.error('❌ WebSocket message parse error:', err.message);
+                console.error('❌ WS message error:', err.message);
             }
         });
 
-        ws.on('close', () => {
-            console.log(`🔌 WebSocket client disconnected: ${ip}`);
+        ws.on('close', async () => {
+            console.log(`🔌 WS disconnected: ${ip}`);
             clients.delete(ws);
+            await unregisterUser(ws);
         });
 
-        ws.on('error', err => {
-            console.error('❌ WebSocket client error:', err.message);
+        ws.on('error', async (err) => {
+            console.error('❌ WS error:', err.message);
             clients.delete(ws);
+            await unregisterUser(ws);
         });
     });
+
+    // Heartbeat
+    setInterval(() => {
+        clients.forEach(ws => { if (ws.readyState === WebSocket.OPEN) ws.ping(); });
+    }, 30000);
 
     console.log('🚀 WebSocket server started');
 }
 
-/**
- * Query DB for current prices of all active products.
- * Symbols in DB should be stored as "BTC-USD" format (dash-separated).
- */
 async function getCurrentPrices() {
     try {
         const [rows] = await db.promise().query(
-            'SELECT symbol, current_price FROM products WHERE is_active = TRUE'
+            'SELECT symbol, current_price FROM products WHERE is_active=TRUE'
         );
         return rows;
     } catch (err) {
-        console.error('❌ Error fetching current prices from DB:', err.message);
+        console.error('❌ Error fetching prices:', err.message);
         return [];
     }
 }
 
-/**
- * Start broadcasting current prices to all clients every 2 seconds.
- * Call this after startWebSocketServer().
- */
 function startPriceBroadcast() {
     console.log('📡 Starting price broadcast (every 2s)…');
-
     setInterval(async () => {
-        // Skip if no clients are connected
         if (clients.size === 0) return;
-
         const prices = await getCurrentPrices();
-
-        if (!prices.length) {
-            console.warn('⚠️  No active products found in DB — check products table');
-            return;
-        }
-
         prices.forEach(row => {
-            broadcastPriceUpdate(
-                row.symbol,                  // e.g. "BTC-USD"
-                row.current_price,
-                new Date().toISOString()
-            );
+            broadcastPriceUpdate(row.symbol, row.current_price, new Date().toISOString());
         });
     }, 2000);
 }
 
 module.exports = {
-    startWebSocketServer,
-    startPriceBroadcast,
-    broadcastPriceUpdate,
-    broadcastCandleUpdate
+    startWebSocketServer, startPriceBroadcast,
+    broadcastPriceUpdate, broadcastCandleUpdate,
+    getOnlineCount:   () => onlineUsers.size,
+    getOnlineUserIds: () => Array.from(onlineUsers),
 };
