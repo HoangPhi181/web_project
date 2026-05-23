@@ -1,7 +1,4 @@
-// backend/routes/orders.js (v2)
-// Thay đổi: tất cả route nhận thêm query param ?type=REAL|DEMO
-// Frontend gửi type để biết đang thao tác ở ví nào
-// Mặc định là DEMO nếu không gửi
+// backend/routes/orders.js 
 
 const express     = require("express");
 const verifyToken = require("../middleware/authMiddleware");
@@ -22,7 +19,16 @@ router.post("/create", verifyToken, async (req, res, next) => {
   try {
     await Mediator.Trade.checkNotBlocked(req.userId);
     const type = getType(req);
-    const v    = validateOrderCreate(req.body);
+
+    // Lấy giá hiện tại của sản phẩm để validate SL/TP theo side
+    const db = require("../db");
+    const [[product]] = await db.promise().query(
+      "SELECT current_price FROM products WHERE product_id=? AND is_active=TRUE",
+      [req.body.product_id]
+    );
+    const currentPrice = product ? parseFloat(product.current_price) : null;
+
+    const v = validateOrderCreate(req.body, currentPrice);
     const result = await Mediator.Trade.createOrder(
       req.userId, v.product_id, v.side, v.volume, v.stop_loss, v.take_profit, type
     );
