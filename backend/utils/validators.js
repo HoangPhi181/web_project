@@ -1,173 +1,156 @@
 // backend/utils/validators.js
-// Centralized input validation
 
 const { ValidationError } = require('./errors');
 
-function validateOrderCreate(body) {
-  const errors = {};
+// ─── Validate SL/TP theo side và giá mở lệnh ────
+function checkSLTP(side, openPrice, sl, tp) {
+    const errors = [];
+    const open   = parseFloat(openPrice);
 
-  // Validate product_id
-  if (!body.product_id || !Number.isInteger(body.product_id) || body.product_id <= 0) {
-    errors.product_id = 'Invalid product ID';
-  }
-
-  // Validate side
-  if (!['BUY', 'SELL'].includes(body.side?.toUpperCase())) {
-    errors.side = 'Side must be BUY or SELL';
-  }
-
-  // Validate volume
-  if (!body.volume || isNaN(body.volume)) {
-    errors.volume = 'Volume must be a valid number';
-  } else {
-    const vol = parseFloat(body.volume);
-    if (vol <= 0) {
-      errors.volume = 'Volume must be greater than 0';
+    if (sl !== null && sl !== undefined && sl !== '') {
+        const v = parseFloat(sl);
+        if (isNaN(v) || v <= 0) {
+            errors.push({ field: 'stop_loss', message: 'Stop Loss phải là số dương' });
+        } else if (side === 'BUY' && v >= open) {
+            errors.push({ field: 'stop_loss', message: `Stop Loss lệnh MUA phải nhỏ hơn giá mở lệnh (${open})` });
+        } else if (side === 'SELL' && v <= open) {
+            errors.push({ field: 'stop_loss', message: `Stop Loss lệnh BÁN phải lớn hơn giá mở lệnh (${open})` });
+        }
     }
-    if (vol > 1000) {
-      errors.volume = 'Volume must be <= 1000';
+
+    if (tp !== null && tp !== undefined && tp !== '') {
+        const v = parseFloat(tp);
+        if (isNaN(v) || v <= 0) {
+            errors.push({ field: 'take_profit', message: 'Take Profit phải là số dương' });
+        } else if (side === 'BUY' && v <= open) {
+            errors.push({ field: 'take_profit', message: `Take Profit lệnh MUA phải lớn hơn giá mở lệnh (${open})` });
+        } else if (side === 'SELL' && v >= open) {
+            errors.push({ field: 'take_profit', message: `Take Profit lệnh BÁN phải nhỏ hơn giá mở lệnh (${open})` });
+        }
     }
-  }
 
-  // Validate stop_loss
-  const hasStopLoss = body.stop_loss !== undefined && body.stop_loss !== null && body.stop_loss !== '';
-  if (hasStopLoss) {
-    if (isNaN(body.stop_loss)) {
-      errors.stop_loss = 'Stop loss must be a valid number';
-    } else if (parseFloat(body.stop_loss) <= 0) {
-      errors.stop_loss = 'Stop loss must be greater than 0';
+    if (sl && tp) {
+        const sv = parseFloat(sl), tv = parseFloat(tp);
+        if (!isNaN(sv) && !isNaN(tv) && sv === tv)
+            errors.push({ field: 'stop_loss', message: 'Stop Loss và Take Profit không được bằng nhau' });
     }
-  }
 
-  // Validate take_profit
-  const hasTakeProfit = body.take_profit !== undefined && body.take_profit !== null && body.take_profit !== '';
-  if (hasTakeProfit) {
-    if (isNaN(body.take_profit)) {
-      errors.take_profit = 'Take profit must be a valid number';
-    } else if (parseFloat(body.take_profit) <= 0) {
-      errors.take_profit = 'Take profit must be greater than 0';
-    }
-  }
-
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationError('Validation failed', errors);
-  }
-
-  return {
-    product_id: parseInt(body.product_id),
-    side: body.side.toUpperCase(),
-    volume: parseFloat(body.volume).toFixed(8),
-    stop_loss: hasStopLoss ? parseFloat(body.stop_loss).toFixed(8) : null,
-    take_profit: hasTakeProfit ? parseFloat(body.take_profit).toFixed(8) : null
-  };
+    return errors;
 }
 
+// ─── Validate tạo lệnh ───
+function validateOrderCreate(body, currentPrice) {
+    const errors = {};
+
+    if (!body.product_id || !Number.isInteger(Number(body.product_id)) || Number(body.product_id) <= 0)
+        errors.product_id = 'ID sản phẩm không hợp lệ';
+
+    const side = body.side?.toUpperCase();
+    if (!['BUY', 'SELL'].includes(side))
+        errors.side = 'Side phải là BUY hoặc SELL';
+
+    if (!body.volume || isNaN(body.volume)) {
+        errors.volume = 'Volume phải là số hợp lệ';
+    } else {
+        const vol = parseFloat(body.volume);
+        if (vol <= 0)   errors.volume = 'Volume phải lớn hơn 0';
+        if (vol > 1000) errors.volume = 'Volume không được vượt quá 1000';
+    }
+
+    const hasSL = body.stop_loss   != null && body.stop_loss   !== '';
+    const hasTP = body.take_profit != null && body.take_profit !== '';
+
+    // Nếu có SL hoặc TP thì bắt buộc phải có currentPrice để validate
+    if (hasSL || hasTP) {
+        if (!currentPrice) {
+            errors.price = 'Không lấy được giá hiện tại để kiểm tra SL/TP';
+        } else if (side && ['BUY', 'SELL'].includes(side)) {
+            const slErrs = checkSLTP(
+                side,
+                currentPrice,
+                hasSL ? body.stop_loss   : null,
+                hasTP ? body.take_profit : null
+            );
+            slErrs.forEach(e => { errors[e.field] = e.message; });
+        }
+    }
+
+    if (Object.keys(errors).length > 0)
+        throw new ValidationError('Validation thất bại', errors);
+
+    return {
+        product_id:  parseInt(body.product_id),
+        side,
+        volume:      parseFloat(body.volume).toFixed(8),
+        stop_loss:   hasSL ? parseFloat(body.stop_loss).toFixed(8)   : null,
+        take_profit: hasTP ? parseFloat(body.take_profit).toFixed(8) : null,
+    };
+}
+
+// ─── Validate đóng lệnh ────
 function validateCloseOrder(body) {
-  const errors = {};
-
-  if (!body.close_price || isNaN(body.close_price)) {
-    errors.close_price = 'Close price must be a valid number';
-  } else if (parseFloat(body.close_price) <= 0) {
-    errors.close_price = 'Close price must be greater than 0';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationError('Validation failed', errors);
-  }
-
-  return {
-    close_price: parseFloat(body.close_price).toFixed(8)
-  };
+    const errors = {};
+    if (!body.close_price || isNaN(body.close_price))
+        errors.close_price = 'Giá đóng lệnh phải là số hợp lệ';
+    else if (parseFloat(body.close_price) <= 0)
+        errors.close_price = 'Giá đóng lệnh phải lớn hơn 0';
+    if (Object.keys(errors).length > 0)
+        throw new ValidationError('Validation thất bại', errors);
+    return { close_price: parseFloat(body.close_price).toFixed(8) };
 }
 
+// ─── Validate phân trang ────
 function validatePagination(query) {
-  let limit = parseInt(query.limit) || 20;
-  let page = parseInt(query.page) || 1;
-
-  // Limit constraints
-  if (limit < 1) limit = 20;
-  if (limit > 100) limit = 100;
-
-  // Page constraints
-  if (page < 1) page = 1;
-
-  return {
-    limit,
-    page,
-    offset: (page - 1) * limit
-  };
+    let limit = parseInt(query.limit) || 20;
+    let page  = parseInt(query.page)  || 1;
+    if (limit < 1)   limit = 20;
+    if (limit > 100) limit = 100;
+    if (page  < 1)   page  = 1;
+    return { limit, page, offset: (page - 1) * limit };
 }
 
+// ─── Validate đăng ký ────
 function validateRegister(body) {
-  const errors = {};
-
-  // Validate username
-  if (!body.username || typeof body.username !== 'string') {
-    errors.username = 'Username is required';
-  } else if (body.username.length < 3 || body.username.length > 50) {
-    errors.username = 'Username must be between 3 and 50 characters';
-  } else if (!/^[a-zA-Z0-9_]+$/.test(body.username)) {
-    errors.username = 'Username can only contain letters, numbers, and underscores';
-  }
-
-  // Validate email
-  if (!body.email || typeof body.email !== 'string') {
-    errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-    errors.email = 'Invalid email format';
-  }
-
-  // Validate password
-  if (!body.password || typeof body.password !== 'string') {
-    errors.password = 'Password is required';
-  } else if (body.password.length < 8) {
-    errors.password = 'Password must be at least 8 characters long';
-  } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(body.password)) {
-    errors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationError('Validation failed', errors);
-  }
-
-  return {
-    username: body.username.trim(),
-    email: body.email.trim().toLowerCase(),
-    password: body.password
-  };
+    const errors = {};
+    if (!body.username || body.username.length < 3 || body.username.length > 50)
+        errors.username = 'Tên đăng nhập phải từ 3-50 ký tự';
+    else if (!/^[a-zA-Z0-9_]+$/.test(body.username))
+        errors.username = 'Tên đăng nhập chỉ được chứa chữ, số và dấu gạch dưới';
+    if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+        errors.email = 'Email không hợp lệ';
+    if (!body.password || body.password.length < 8)
+        errors.password = 'Mật khẩu phải ít nhất 8 ký tự';
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(body.password))
+        errors.password = 'Mật khẩu phải có chữ thường, chữ hoa và số';
+    if (Object.keys(errors).length > 0)
+        throw new ValidationError('Validation thất bại', errors);
+    return {
+        username: body.username.trim(),
+        email:    body.email.trim().toLowerCase(),
+        password: body.password,
+    };
 }
 
+// ─── Validate đăng nhập ───
 function validateLogin(body) {
-  const errors = {};
-
-  // Validate email
-  if (!body.email || typeof body.email !== 'string') {
-    errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
-    errors.email = 'Invalid email format';
-  }
-
-  // Validate password
-  if (!body.password || typeof body.password !== 'string') {
-    errors.password = 'Password is required';
-  } else if (body.password.length < 6) {
-    errors.password = 'Password must be at least 6 characters long';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationError('Validation failed', errors);
-  }
-
-  return {
-    email: body.email.trim().toLowerCase(),
-    password: body.password
-  };
+    const errors = {};
+    if (!body.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
+        errors.email = 'Email không hợp lệ';
+    if (!body.password || body.password.length < 6)
+        errors.password = 'Mật khẩu phải ít nhất 6 ký tự';
+    if (Object.keys(errors).length > 0)
+        throw new ValidationError('Validation thất bại', errors);
+    return {
+        email:    body.email.trim().toLowerCase(),
+        password: body.password,
+    };
 }
 
 module.exports = {
-  validateOrderCreate,
-  validateCloseOrder,
-  validatePagination,
-  validateRegister,
-  validateLogin
+    checkSLTP,
+    validateOrderCreate,
+    validateCloseOrder,
+    validatePagination,
+    validateRegister,
+    validateLogin,
 };
