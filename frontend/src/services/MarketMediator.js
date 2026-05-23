@@ -50,7 +50,7 @@ export default function useMarketMediator(initialAccountType = "REAL") {
             const resB     = await getBalance(authHeader());
             const accounts = resB.data || [];
             const acc      = accounts.find(a => a.account_type?.toUpperCase() === accountType.toUpperCase());
-            console.log("ACC:", acc);
+            // console.log("ACC:", acc);
             if (acc) {
                 setBalance(parseFloat(acc.balance      ?? 0));
                 setUsedMargin(parseFloat(acc.used_margin ?? 0));
@@ -78,7 +78,7 @@ export default function useMarketMediator(initialAccountType = "REAL") {
     useEffect(() => {
         const userId = localStorage.getItem("userId");
         if (!userId) return;
-        const wsUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WS_URL) || "ws://localhost:5000";
+        const wsUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WS_URL) || "wss://web-trading-project.onrender.com";
         const ws    = new WebSocket(wsUrl);
         ws.onopen   = () => ws.send(JSON.stringify({ type: "identify", userId: parseInt(userId) }));
         ws.onerror  = () => {};

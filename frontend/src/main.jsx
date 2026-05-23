@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 
 import Layout from "./component/Layout";
+import AdminLayout from "./features/admin/AdminLayout"; // ← thêm dòng này
 
 import HomePage from "./features/home/HomePage";
 import Login_Register from "./features/auth/Login_Register";
@@ -18,8 +19,8 @@ import QRPage from "./features/payment/QRPage";
 
 import Dashboard from "./features/admin/Dashboard";
 import ManageUsers from "./features/admin/ManageUsers";
-import AdminRoute from "./features/admin/AdminRoute";
 import Pending from "./features/admin/Pending";
+// ← xóa import AdminRoute ở đây vì AdminLayout đã xử lý rồi
 
 function App() {
   return (
@@ -30,10 +31,8 @@ function App() {
         <Route path="/Login_Register" element={<Login_Register />} />
         <Route path="/forgot-password" element={<ForgotAccount />} />
 
-        {/* market nó có header sidebar riêng*/}
         <Route path="/MarketPage" element={<MarketPage />} />
 
-        {/* Các page CÓ Header + Sidebar dùng chung Layout */}
         <Route element={<Layout />}>
           <Route path="/UserPage" element={<UserPage />} />
           <Route path="/HistoryPage" element={<HistoryPage />} />
@@ -42,13 +41,15 @@ function App() {
           <Route path="/WithdrawalPage" element={<WithdrawalPage />} />
           <Route path="/PaymentPage" element={<PaymentPage />} />
         </Route>
-        {/* Trang thanh QR riêng */}
+
         <Route path="/QRPage" element={<QRPage />} />
 
-        {/* Admin pages */}
-        <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
-        <Route path="/admin/users" element={<AdminRoute><ManageUsers /></AdminRoute>} />
-        <Route path="/admin/pending" element={<AdminRoute><Pending /></AdminRoute>} />
+        {/* Admin — Header & Sidebar render 1 lần duy nhất */}
+        <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/pending" element={<Pending />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
