@@ -1,6 +1,7 @@
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
+import useOnlineStatus from "./hooks/useOnlineStatus";
 
 import Layout from "./component/Layout";
 import AdminLayout from "./features/admin/AdminLayout"; // ← thêm dòng này
@@ -20,9 +21,9 @@ import QRPage from "./features/payment/QRPage";
 import Dashboard from "./features/admin/Dashboard";
 import ManageUsers from "./features/admin/ManageUsers";
 import Pending from "./features/admin/Pending";
-// ← xóa import AdminRoute ở đây vì AdminLayout đã xử lý rồi
 
 function App() {
+  useOnlineStatus(); // Gửi identify WebSocket ở mọi trang khi đã đăng nhập
   return (
     <BrowserRouter>
       <Routes>

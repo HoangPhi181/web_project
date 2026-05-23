@@ -74,17 +74,6 @@ export default function useMarketMediator(initialAccountType = "REAL") {
         return () => clearInterval(t);
     }, [fetchData]);
 
-    // Gửi identify WebSocket — để server đếm online
-    useEffect(() => {
-        const userId = localStorage.getItem("userId");
-        if (!userId) return;
-        const wsUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_WS_URL) || "wss://web-trading-project.onrender.com";
-        const ws    = new WebSocket(wsUrl);
-        ws.onopen   = () => ws.send(JSON.stringify({ type: "identify", userId: parseInt(userId) }));
-        ws.onerror  = () => {};
-        return () => ws.close();
-    }, []);
-
     const handleInputChange = useCallback((e) => {
         const { name, value } = e.target;
         setTradeForm(prev => ({ ...prev, [name]: value }));
