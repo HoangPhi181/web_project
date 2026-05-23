@@ -198,25 +198,10 @@ export default function ManageUsers() {
 
   return (
     <div className="ad-wrapper">
-
-      <Sidebar />
-
       <div className="ad-main">
-
-        <Header />
-
         <h2 className="ad-title">Quản lý người dùng</h2>
 
         <div className='find'>
-
-          {/* <input
-            type='phone'
-            placeholder='phone'
-            value={searchPhone}
-            onChange={(e) =>
-              setSearchPhone(e.target.value)
-            }
-          /> */}
           <input
             type='phone'
             placeholder='phone'

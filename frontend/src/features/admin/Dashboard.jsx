@@ -33,7 +33,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
 
-    const wsUrl = (import.meta.env?.VITE_WS_URL) || 'ws://localhost:5000';
+    const wsUrl = (import.meta.env?.VITE_WS_URL) || 'wss://web-trading-project.onrender.com';
     const ws    = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -68,9 +68,7 @@ export default function Dashboard() {
 
   return (
     <div className="ad-wrapper">
-      <Sidebar />
       <div className="ad-main">
-        <Header />
         <h2 className="ad-title">Bảng điều khiển quản trị</h2>
 
         <div className="ad-grid">

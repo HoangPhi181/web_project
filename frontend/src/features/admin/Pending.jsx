@@ -64,10 +64,7 @@ export default function Pending() {
 
   return (
     <div className="ad-wrapper">
-      <Sidebar />
-
       <div className="ad-main">
-        <Header />
         <h2>Y/C Nạp tiền</h2>
 
         <div className="ad-toolbar">
