@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../component/Sidebar";
 import Header from "../../component/Header";
+import "../../styles/Account.css";
 import { history } from "../../api/orderApi";
 
 function HistoryTable({ data }) {
@@ -272,163 +273,21 @@ export default function HistoryPage() {
   };
 
   return (
-    <>
-      <style>{`
-        .historyPage {
-          color: white;
-          min-height: 100vh;
-        }
+    <div className="historyPage">
+      <div className="layout">
 
-        .layout {
-          display: grid;
-          grid-template-columns: 260px 1fr;
-        }
-
-        .main {
-          padding: 30px;
-        }
-
-        .main h1 {
-          margin-bottom: 20px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 14px;
-            margin-bottom: 24px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .controls select {
-            min-width: 180px;
-            padding: 12px 16px;
-
-            border: 1px solid rgba(228, 96, 51, 0.35);
-            border-radius: 10px;
-
-            background: rgba(25, 25, 25, 0.95);
-            color: #fff;
-
-            font-size: 15px;
-            font-weight: 500;
-
-            cursor: pointer;
-            outline: none;
-
-            transition: all 0.25s ease;
-        }
-
-        .controls select:hover {
-            border-color: #e46033;
-            box-shadow: 0 0 12px rgba(228, 96, 51, 0.18);
-        }
-
-        .controls select:focus {
-            border-color: #ffd773;
-            box-shadow: 0 0 16px rgba(255, 215, 115, 0.25);
-        }
-
-        .controls option {
-            background: #121212;
-            color: #fff;
-        }
-
-        .table-card {
-          background: rgba(255,255,255,0.04);
-          border-radius: 16px;
-          padding: 20px;
-          box-shadow: 0 0 25px rgba(0,0,0,0.6);
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        th {
-          text-align: left;
-          padding: 14px;
-          color: #888;
-          border-bottom: 1px solid #222;
-        }
-
-        td {
-          padding: 14px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        tr {
-          transition: 0.25s;
-        }
-
-        tr:hover {
-          background: rgba(255,255,255,0.05);
-        }
-
-        .buy {
-          color: #00ff99;
-          font-weight: bold;
-        }
-
-        .sell {
-          color: #ff4d4d;
-          font-weight: bold;
-        }
-
-        .profit {
-          color: #00ffcc;
-          font-weight: bold;
-        }
-
-        .loss {
-          color: #ff4d4d;
-          font-weight: bold;
-        }
-
-        .pagination {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 20px;
-          margin-top: 20px;
-        }
-
-        .pagination button {
-          padding: 10px 18px;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          background: #00ffcc;
-          color: black;
-          font-weight: bold;
-        }
-
-        .pagination button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
-
-      <div className="historyPage">
-        <Header />
-
-        <div className="layout">
-          <Sidebar />
-
-          <Menu
-            orders={orders}
-            loading={loading}
-            page={page}
-            totalPages={totalPages}
-            handlePrev={handlePrev}
-            handleNext={handleNext}
-            filterType={filterType}
-            setFilterType={setFilterType}
-            sortBy={sortBy} setSortBy={setSortBy}
-          />
-        </div>
+        <Menu
+          orders={orders}
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          handlePrev={handlePrev}
+          handleNext={handleNext}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          sortBy={sortBy} setSortBy={setSortBy}
+        />
       </div>
-    </>
+    </div>
   );
 }

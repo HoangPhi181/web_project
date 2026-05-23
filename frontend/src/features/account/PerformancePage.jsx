@@ -49,11 +49,6 @@ export default function PerformancePage() {
           color: white;
         }
 
-        .performance-container {
-          display: grid;
-          grid-template-columns: 260px 1fr;
-        }
-
         .main-container {
           padding: 30px;
         }
@@ -121,9 +116,7 @@ export default function PerformancePage() {
       </style>
 
       <div className="performancePage-container">
-        <Header />
         <div className="performance-container">
-          <Sidebar />
           <Menu />
         </div>
       </div>

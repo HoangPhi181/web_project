@@ -110,9 +110,9 @@ function Content() {
 export default function PaymentPage() {
   return (
     <div className='paymentPage-container'>
-      <Header/>
+      {/* <Header/> */}
       <div className='payment-container'>
-        <Sidebar/>
+        {/* <Sidebar/> */}
         <Menu/>
       </div>
     </div>

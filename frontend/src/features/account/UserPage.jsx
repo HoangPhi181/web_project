@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/UserPage.css";
-import Sidebar from "../../component/Sidebar";
-import Header from "../../component/Header";
+import "../../styles/Account.css";
 import UserMediator from "../../services/UserMediator";
 import { AccountBox } from "../../component/AccountBox";
 
@@ -139,10 +137,7 @@ export default function UserPage() {
 
   return (
     <div className="userPage-container">
-      <Header />
-
       <div className="user-container">
-        <Sidebar />
 
         {page === "openAccount"
           ? <OpenAccount setPage={setPage} refreshAccounts={fetchAccounts} />

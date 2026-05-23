@@ -50,6 +50,17 @@ export default function Header() {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        if (!show) return;
+        const handler = (e) => {
+            if (!e.target.closest('.dropdown') && !e.target.closest('.icon-user-information')) {
+                setShow(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [show]);
+
     return (
         <>
             <style>
@@ -142,11 +153,12 @@ export default function Header() {
 
                 {show && (
                     <div className="dropdown">
-                        <div onClick={() => navigate("/ProfilePage")}>
+                        <div onClick={() => { setShow(false); navigate("/ProfilePage"); }}>
                             Thông tin
                         </div>
 
                         <div onClick={() => {
+                            setShow(false);
                             localStorage.removeItem("token");
                             navigate("/Login_Register");
                         }}>
