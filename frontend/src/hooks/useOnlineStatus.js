@@ -1,22 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const WS_URL =
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_WS_URL) ||
+    "wss://web-trading-project.onrender.com";
 
 /**
- * Hook gửi "identify" qua WebSocket ngay khi user đã đăng nhập.
+ * Chỉ kết nối WebSocket khi đăng nhập.
+ * Tự ngắt kết nối khi userId đăng xuất hoặc đóng tab.
  */
-export default function useOnlineStatus() {
+export default function useOnlineStatus(userId) {
+    const wsRef = useRef(null);
+
     useEffect(() => {
-        const rawId = localStorage.getItem("userId");
+        if (!userId) return;
 
-        if (!rawId || rawId === "null" || rawId === "undefined") return;
-
-        const userId = parseInt(rawId, 10);
-        if (isNaN(userId)) return; 
-
-        const wsUrl =
-            (typeof import.meta !== "undefined" && import.meta.env?.VITE_WS_URL) ||
-            "wss://web-trading-project.onrender.com";
-
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(WS_URL);
+        wsRef.current = ws;
 
         ws.onopen = () => {
             ws.send(JSON.stringify({ type: "identify", userId }));
@@ -26,11 +25,9 @@ export default function useOnlineStatus() {
             console.warn("WebSocket lỗi (online status):", err);
         };
 
-        // Gửi lại identify nếu kết nối bị gián đoạn rồi mở lại
-        ws.onclose = () => {};
-
         return () => {
             try { ws.close(); } catch (_) {}
+            wsRef.current = null;
         };
-    }, []);
+    }, [userId]); 
 }

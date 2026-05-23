@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import profileMediator from '../../services/ProfileMediator';
-
 export default function Header() {
     const navigate = useNavigate();
     const [show, setShow] = useState(false);
@@ -120,6 +119,10 @@ export default function Header() {
                     </div>
                     <div onClick={() => {
                         localStorage.removeItem("token");
+                        localStorage.removeItem("userId");
+                        localStorage.removeItem("user");
+                        sessionStorage.removeItem("loggedIn");
+                        window.dispatchEvent(new Event("auth-change"));
                         navigate("/Login_Register");
                     }}>
                         Exit

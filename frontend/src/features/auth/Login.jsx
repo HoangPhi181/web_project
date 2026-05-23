@@ -46,6 +46,10 @@ function Login({ onSwitch }) {
             localStorage.setItem("token",  token);
             localStorage.setItem("userId", String(userId)); 
             localStorage.setItem("user",   JSON.stringify(payload));
+            sessionStorage.setItem("loggedIn", "1");
+
+            // Thông báo App cập nhật userId → hook kết nối WebSocket
+            window.dispatchEvent(new Event("auth-change"));
 
             alert("Đăng nhập thành công!");
 
