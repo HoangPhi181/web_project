@@ -3,6 +3,7 @@ import "../../styles/HomePage.css";
 import { useNavigate } from "react-router-dom";
 import { FaShieldAlt, FaCheckCircle, FaHeadset, FaCreditCard } from "react-icons/fa";
 import { SupportSection } from './Support';
+import Footer from '../../component/Footer';
 
 function Header() {
   return (
@@ -83,10 +84,6 @@ function TableRow({ icon, name, link, desc, leverage, spread, overnight, type })
 function Introduction() {
   return (
     <div className="Introduction_container">
-      <div className ="image-box">
-        <img src = "/item1.png"/>
-      </div>
-
       <h1>Giao dịch tài sản từ thị trường toàn cầu</h1>
       <h2>
         Tận dụng mọi cơ hội với những tài sản phổ biến nhất thế giới.
@@ -139,6 +136,10 @@ function Introduction() {
 
         </tbody>
       </table>
+
+      <div className ="image-box">
+        <img src = "/Introduction.png"/>
+      </div>
     </div>
   );
 }
@@ -153,6 +154,7 @@ export default function Background() {
             </div>
 
             <Introduction />
+            <Footer />
         </div>
     );
 }
