@@ -1,29 +1,16 @@
 import axiosClient from "./axiosClient";
 
-const authConfig = () => {
-  const token = localStorage.getItem("token");
-
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-};
-
 // ------------------ DEPOSIT ------------------
 export const deposit = (data) => {
   return axiosClient.post(
     "/transactions/deposit",
-    data,
-    authConfig()
+    data
   );
 };
 
 export const markAsPaid = (transactionId) => {
   return axiosClient.post(
-    `/transactions/deposit/${transactionId}/paid`,
-    {},
-    authConfig()
+    `/transactions/deposit/${transactionId}/paid`
   );
 };
 
@@ -31,23 +18,20 @@ export const markAsPaid = (transactionId) => {
 export const withdrawRequest = (data) => {
   return axiosClient.post(
     "/transactions/withdraw/request",
-    data,
-    authConfig()
+    data
   );
 };
 
 export const withdrawVerify = (data) => {
   return axiosClient.post(
     "/transactions/withdraw/verify",
-    data,
-    authConfig()
+    data
   );
 };
 
 // ------------------ HISTORY ------------------
 export const getHistory = (type = "REAL") => {
   return axiosClient.get(
-    `/transactions/history?type=${type}`,
-    authConfig()
+    `/transactions/history?type=${type}`
   );
 };

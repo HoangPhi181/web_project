@@ -117,7 +117,7 @@ export default function useMarketMediator(initialAccountType = "REAL") {
                 take_profit: !tradeForm.take_profit || tradeForm.take_profit === "" ? null : Number(tradeForm.take_profit),
             };
             await create(payload, authHeader());
-            alert(`✅ Đặt lệnh ${side} thành công!`);
+            alert(`Đặt lệnh ${side} thành công!`);
             setTradeForm(prev => ({ ...prev, side: "", stop_loss: null, take_profit: null }));
             await fetchData(false);
         } catch (error) {
