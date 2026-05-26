@@ -33,6 +33,7 @@
 
 .marketPage-container .sidebar {
     width: 240px;
+    height:87vh;
     background: #111c22;
     padding: 10px;
     border-right: 2px solid #333;
@@ -205,9 +206,13 @@
     }
 
     .marketPage-container .trade {
-        width: 100%;
+        width: 95%;
         border-left: none;
         border-top: 2px solid #333;
+    }
+    .trade input {
+        display: block;
+        width: 94%;
     }
 }
 /* ── TradeForm ── */
@@ -237,3 +242,34 @@
     display: flex; justify-content: space-between; margin-bottom: 5px; color: #94a3b8;
 }
 .marketPage-container .margin-row span:last-child { color: #e2e8f0; }
+
+@media (max-width: 480px) {
+    .marketPage-container .market-container {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+    }
+
+    .marketPage-container .deposit {
+        display: none;
+    }
+
+    .marketPage-container .sidebar {
+        display: none;
+    }
+
+    .marketPage-container .chart {
+        height: 400px;
+        width: 100%;
+    }
+
+    .marketPage-container .trade {
+        width: 89%;
+        border-left: none;
+        border-top: 2px solid #333;
+    }
+    .trade input {
+        display: block;
+        width: 88%;
+    }
+}

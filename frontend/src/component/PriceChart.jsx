@@ -142,7 +142,7 @@ const PriceChart = ({ symbol = "BTC/USD", orders = [], onPriceChange }) => {
         const connect = () => {
             if (!isMounted) return;
 
-            socket = new WebSocket("wss://web-trading-project.onrender.com");
+            socket = new WebSocket(import.meta.env.VITE_WS_URL);
             setWsStatus("connecting");
 
             socket.onopen = () => {

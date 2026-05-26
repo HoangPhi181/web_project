@@ -72,7 +72,7 @@ export default function TradeForm({
 
         const slErrs = validateSLTP();
         if (slErrs.length > 0) {
-            alert("❌ " + slErrs.join('\n'));
+            alert(slErrs.join('\n'));
             return;
         }
 
@@ -108,15 +108,15 @@ export default function TradeForm({
             </div>
 
             <div className="trade-inputs">
-                <label>Volume</label>
+                <label>Khối lượng (Lot)</label>
                 <input type="number" name="volume" step="0.01" min="0.01"
                     value={tradeForm.volume} onChange={onInputChange} />
 
-                <label>Take Profit</label>
+                <label>Chốt lời</label>
                 <input type="number" name="take_profit"
                     value={tradeForm.take_profit || ""} onChange={onInputChange} placeholder="take profit" />
 
-                <label>Stop Loss</label>
+                <label>Cắt lỗ</label>
                 <input type="number" name="stop_loss"
                     value={tradeForm.stop_loss || ""} onChange={onInputChange} placeholder="stop loss" />
 
