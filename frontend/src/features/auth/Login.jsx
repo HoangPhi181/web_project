@@ -2,6 +2,25 @@ import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import { login } from '../../api/authApi';
 
+function decodeJwtPayload(token) {
+    try {
+        const base64Url = token.split(".")[1];
+        // Chuyển base64url → base64 chuẩn
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        // Padding nếu thiếu
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=");
+        return JSON.parse(atob(padded));
+    } catch (e) {
+        console.error("Không thể decode JWT:", e);
+        return null;
+    }
+}
+
+// Lấy userId từ payload
+function extractUserId(payload) {
+    return payload?.id ?? payload?.userId ?? payload?.user_id ?? payload?.sub ?? null;
+}
+
 function Login({ onSwitch }) {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
@@ -13,12 +32,24 @@ function Login({ onSwitch }) {
             const res   = await login({ email, password });
             const token = res.data.token;
 
-            // Decode JWT không cần thư viện jwt-decode
-            const payload = JSON.parse(atob(token.split(".")[1]));
+            const payload = decodeJwtPayload(token);
+            if (!payload) {
+                alert("Token không hợp lệ, vui lòng thử lại.");
+                return;
+            }
+
+            const userId = extractUserId(payload);
+            if (!userId) {
+                console.warn("Không tìm thấy userId trong payload:", payload);
+            }
 
             localStorage.setItem("token",  token);
-            localStorage.setItem("userId", payload.id || payload.userId);
+            localStorage.setItem("userId", String(userId)); 
             localStorage.setItem("user",   JSON.stringify(payload));
+            sessionStorage.setItem("loggedIn", "1");
+
+            // Thông báo App cập nhật userId → hook kết nối WebSocket
+            window.dispatchEvent(new Event("auth-change"));
 
             alert("Đăng nhập thành công!");
 

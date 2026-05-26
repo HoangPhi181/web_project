@@ -1,9 +1,11 @@
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
 import "./index.css";
+import useOnlineStatus from "./hooks/useOnlineStatus";
 
 import Layout from "./component/Layout";
-import AdminLayout from "./features/admin/AdminLayout"; // ← thêm dòng này
+import AdminLayout from "./features/admin/AdminLayout";
 
 import HomePage from "./features/home/HomePage";
 import Login_Register from "./features/auth/Login_Register";
@@ -20,9 +22,31 @@ import QRPage from "./features/payment/QRPage";
 import Dashboard from "./features/admin/Dashboard";
 import ManageUsers from "./features/admin/ManageUsers";
 import Pending from "./features/admin/Pending";
-// ← xóa import AdminRoute ở đây vì AdminLayout đã xử lý rồi
+
+function getLoggedInUserId() {
+  const token = localStorage.getItem("token");
+  const raw = localStorage.getItem("userId");
+  const session = sessionStorage.getItem("loggedIn");
+  if (!token || !raw || !session) return null;
+  const parsed = parseInt(raw, 10);
+  return isNaN(parsed) ? null : parsed;
+}
 
 function App() {
+  const [userId, setUserId] = useState(() => getLoggedInUserId());
+
+  useEffect(() => {
+    const sync = () => setUserId(getLoggedInUserId());
+    window.addEventListener("storage", sync);
+    window.addEventListener("auth-change", sync);
+    return () => {
+      window.removeEventListener("storage", sync);
+      window.removeEventListener("auth-change", sync);
+    };
+  }, []);
+
+  useOnlineStatus(userId);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -44,7 +68,6 @@ function App() {
 
         <Route path="/QRPage" element={<QRPage />} />
 
-        {/* Admin — Header & Sidebar render 1 lần duy nhất */}
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/users" element={<ManageUsers />} />
