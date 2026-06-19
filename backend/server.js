@@ -16,15 +16,14 @@ const transactionRoutes = require("./routes/transactions");
 const { AppError }       = require("./utils/errors");
 const { startScheduler } = require("./scheduler");
 
-// FIX: broadcast functions lấy từ websocket.js (không phải binanceAPI.js)
 const {
   startWebSocketServer,
   startPriceBroadcast,
-  broadcastPriceUpdate,   // ✅ đúng nguồn
-  broadcastCandleUpdate,  // ✅ đúng nguồn
+  broadcastPriceUpdate,
+  broadcastCandleUpdate,
 } = require("./websocket");
 
-const { setWebSocketBroadcasters } = require("./utils/binanceAPI");
+const { setWebSocketBroadcasters, startBinancePriceStream } = require("./utils/binanceAPI");
 
 const app = express();
 
@@ -65,11 +64,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
 
-  // Lỗi validation (400)
   if (err.statusCode === 400) {
     return res.status(400).json({ message: err.message, errors: err.errors || {} });
   }
-  // Số dư không đủ (402)
   if (err.statusCode === 402) {
     return res.status(402).json({
       message:           err.message,
@@ -77,15 +74,12 @@ app.use((err, req, res, next) => {
       available_balance: err.available_balance,
     });
   }
-  // Các lỗi có statusCode khác
   if (err.statusCode) {
     return res.status(err.statusCode).json({ message: err.message });
   }
-  // Lỗi business logic thông thường (ném bằng new Error(...))
   if (err.isOperational || err instanceof Error) {
     return res.status(400).json({ message: err.message });
   }
-  // Lỗi không mong muốn
   res.status(500).json({
     message: "Internal server error",
     error:   process.env.NODE_ENV === "development" ? err.message : undefined,
@@ -97,15 +91,9 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 
-  // Khởi động WebSocket
   startWebSocketServer(server);
-
-  // FIX: truyền đúng hàm broadcast từ websocket.js vào binanceAPI
   setWebSocketBroadcasters(broadcastPriceUpdate, broadcastCandleUpdate);
-
-  // Bắt đầu broadcast giá mỗi 2 giây
+  startBinancePriceStream(); // ← Binance WS stream (thay REST, tránh 418)
   startPriceBroadcast();
-
-  // Bắt đầu scheduler sync giá từ Binance
   startScheduler();
 });
