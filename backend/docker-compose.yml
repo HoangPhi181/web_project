@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  backend:
+    image: hoangphi181/web-project:latest
+    container_name: trading-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    restart: unless-stopped
