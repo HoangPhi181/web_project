@@ -2,6 +2,7 @@
 // Fetch OHLC data from Binance API and update candles & current prices
 
 const axios = require('axios');
+const WebSocket = require('ws');
 const db = require('../db');
 
 const dbPromise = db.promise();
@@ -30,10 +31,82 @@ const TIMEFRAME_MAPPING = {
   '1d': '1d'
 };
 
+// Cache giá mới nhất (dùng nội bộ nếu cần)
+let latestPrices = {};
+
+// ─────────────────────────────────────────────
+// Binance WebSocket Price Stream (thay REST polling)
+// ─────────────────────────────────────────────
+
+let binanceWs = null;
+
 /**
- * Fetch giá realtime từ Binance ticker (KHÔNG dùng klines)
- * Trả về giá giao dịch mới nhất, cập nhật liên tục
- * @param {string} symbol - Our symbol (e.g., 'BTC-USD')
+ * Kết nối Binance miniTicker stream để nhận giá realtime
+ * Thay thế hoàn toàn fetchRealtimePrice() + updateCurrentPrice()
+ */
+function startBinancePriceStream() {
+  const streams = Object.values(SYMBOL_MAPPING)
+    .map(s => `${s.toLowerCase()}@miniTicker`)
+    .join('/');
+
+  const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+
+  console.log(`Connecting to Binance stream: ${url}`);
+  binanceWs = new WebSocket(url);
+
+  binanceWs.on('open', () => {
+    console.log('✅ Connected to Binance price stream');
+  });
+
+  binanceWs.on('message', async (data) => {
+    try {
+      const msg = JSON.parse(data);
+      const ticker = msg.data;
+      const price = parseFloat(ticker.c); // c = close/current price
+
+      // Map BTCUSDT → BTC-USD
+      const ourSymbol = Object.entries(SYMBOL_MAPPING)
+        .find(([, v]) => v === ticker.s)?.[0];
+
+      if (!ourSymbol) return;
+
+      latestPrices[ourSymbol] = price;
+
+      // Cập nhật DB
+      await dbPromise.query(
+        'UPDATE products SET current_price = ?, updated_at = NOW() WHERE symbol = ?',
+        [price, ourSymbol]
+      );
+
+      // Broadcast qua WebSocket server của bạn
+      if (broadcastPriceUpdate) {
+        broadcastPriceUpdate(ourSymbol, price, new Date().toISOString());
+      }
+
+    } catch (err) {
+      console.error('Error processing Binance stream message:', err.message);
+    }
+  });
+
+  binanceWs.on('close', () => {
+    console.warn('⚠️ Binance stream disconnected. Reconnecting in 5s...');
+    binanceWs = null;
+    setTimeout(startBinancePriceStream, 5000);
+  });
+
+  binanceWs.on('error', (err) => {
+    console.error('Binance stream error:', err.message);
+    // 'close' event sẽ tự trigger reconnect
+  });
+}
+
+// ─────────────────────────────────────────────
+// Giữ lại fetchRealtimePrice để tương thích (fallback)
+// Nhưng KHÔNG dùng trong syncAllSymbols nữa
+// ─────────────────────────────────────────────
+
+/**
+ * @deprecated Dùng startBinancePriceStream() thay thế
  */
 async function fetchRealtimePrice(symbol) {
   try {
@@ -51,6 +124,10 @@ async function fetchRealtimePrice(symbol) {
     throw error;
   }
 }
+
+// ─────────────────────────────────────────────
+// OHLC / Klines (vẫn dùng REST — ít request hơn, không bị 418)
+// ─────────────────────────────────────────────
 
 /**
  * Fetch OHLC data from Binance klines
@@ -142,27 +219,33 @@ async function updateCandlesData(symbol, timeframe, ohlcData) {
 }
 
 /**
- * Update current_price trong products từ giá realtime Binance ticker
- * ✅ FIX: dùng ticker/price thay vì lấy từ candle đã đóng
+ * @deprecated Giá realtime nay do stream xử lý
+ * Giữ lại để không break code cũ nếu có nơi gọi
  */
 async function updateCurrentPrice(symbol) {
   try {
-    // Lấy giá realtime từ Binance ticker
-    const latestPrice = await fetchRealtimePrice(symbol);
+    // Nếu đã có giá từ stream thì dùng luôn
+    if (latestPrices[symbol]) {
+      const price = latestPrices[symbol];
+      await dbPromise.query(
+        'UPDATE products SET current_price = ?, updated_at = NOW() WHERE symbol = ?',
+        [price, symbol]
+      );
+      if (broadcastPriceUpdate) {
+        broadcastPriceUpdate(symbol, price, new Date().toISOString());
+      }
+      return price;
+    }
 
-    // Cập nhật DB
+    // Fallback: gọi REST (chỉ khi stream chưa kết nối)
+    const latestPrice = await fetchRealtimePrice(symbol);
     await dbPromise.query(
       'UPDATE products SET current_price = ?, updated_at = NOW() WHERE symbol = ?',
       [latestPrice, symbol]
     );
-
-    console.log(`Updated current_price for ${symbol}: ${latestPrice}`);
-
-    // Broadcast qua WebSocket
     if (broadcastPriceUpdate) {
       broadcastPriceUpdate(symbol, latestPrice, new Date().toISOString());
     }
-
     return latestPrice;
 
   } catch (error) {
@@ -172,22 +255,20 @@ async function updateCurrentPrice(symbol) {
 }
 
 /**
- * Sync tất cả symbols:
- * - Mỗi 10s: cập nhật giá realtime từ ticker
- * - Mỗi 1m:  cập nhật candle từ klines (để chart có lịch sử)
+ * Sync candles (giá realtime do stream lo — không cần gọi updateCurrentPrice)
+ * Chỉ còn cập nhật klines cho chart history
  */
 async function syncAllSymbols() {
   try {
-    console.log('Starting OHLC data sync...');
+    console.log('Starting candle sync...');
 
     const symbols = Object.keys(SYMBOL_MAPPING);
 
     for (const symbol of symbols) {
       try {
-        // ✅ Luôn cập nhật giá realtime từ ticker
-        await updateCurrentPrice(symbol);
+        // ✅ KHÔNG gọi updateCurrentPrice() nữa → tránh 418
+        // Giá realtime đã được startBinancePriceStream() xử lý
 
-        // Cập nhật candle 1m mới nhất vào DB (để chart history đúng)
         const ohlcData = await fetchOHLCData(symbol, '1m', 2);
         if (ohlcData.length > 0) {
           await updateCandlesData(symbol, '1m', ohlcData);
@@ -198,7 +279,7 @@ async function syncAllSymbols() {
       }
     }
 
-    console.log('OHLC data sync completed');
+    console.log('Candle sync completed');
 
   } catch (error) {
     console.error('Error in syncAllSymbols:', error.message);
@@ -249,6 +330,7 @@ module.exports = {
   syncAllSymbols,
   getHistoricalCandles,
   setWebSocketBroadcasters,
+  startBinancePriceStream,   // ← export mới
   SYMBOL_MAPPING,
   TIMEFRAME_MAPPING
 };
